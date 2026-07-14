@@ -548,6 +548,26 @@ p { line-height: 1.45; }
 
 .form-grid { display: grid; gap: 12px; }
 label { font-size: 13px; font-weight: 800; color: #5f543d; display: block; margin-bottom: 5px; }
+.help-dot {
+  align-items: center;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--olive);
+  cursor: help;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 900;
+  height: 18px;
+  justify-content: center;
+  margin-left: 5px;
+  vertical-align: text-top;
+  width: 18px;
+}
+.help-dot:focus {
+  outline: 2px solid rgba(108, 92, 44, .22);
+  outline-offset: 2px;
+}
 input, select, textarea {
   width: 100%;
   border: 1px solid var(--line);
@@ -558,6 +578,7 @@ input, select, textarea {
 }
 input[type="file"] { padding: 10px; }
 textarea { min-height: 110px; resize: vertical; }
+.tall-notes { min-height: 260px; }
 .image-prompt-box { min-height: 260px; }
 
 .summary {

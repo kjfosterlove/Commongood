@@ -48,6 +48,7 @@
 - Add Product should save owner-created products locally, show inactive products only in the Workroom, and show active products on customer-facing refill, Pantry Ready, and request screens based on selected formats.
 - Product Notebook should stay streamlined: Overview, Recipe, Cost & Pricing, Packaging & Labels, and Marketing. COGS and pricing belong together because refill and Pantry Ready prices are decided from the cost basis.
 - Owner Dashboard should act as the Workroom front desk: recent sales, open Pantry Ready requests, inventory alerts, product pipeline, COGS-to-finish count, missing owner text settings, and quick action buttons. Deeper tabs should remain for work that needs focused editing or fast switching.
+- Owner forms should favor fewer fields with hover help. Fields that do not drive current calculations, reports, checkout, stickers, inventory alerts, or customer-facing output should be hidden until they have a real use.
 - COGS calculator should pull recipe lines into costable ingredient rows. Each row should capture recipe amount/unit, purchased container cost, purchased container size/unit, supplier, purchase link, and notes.
 - COGS should also capture time to produce, labor rate/cost, packaging cost, label cost, optional packaging photo/link, waste buffer, and target margin.
 - COGS should be understandable as both refill cost per unit and Pantry Ready cost per package, since refill pricing is usually per ounce/gram and Pantry Ready pricing is usually per finished jar, bottle, pouch, bar, or set.
@@ -154,3 +155,5 @@
 - Inventory workflow should support raw ingredients, packaging, labels, finished Pantry Ready goods, refill stock, trunk box, market stock, accessories, basic jars, reorder points, and one-of-a-kind glass.
 - Current Inventory tab supports adding, editing, and deleting inventory items with linked product, category, planned amount, actual products on hand, unit, difference/status, reorder point, location, supplier/source, purchase link, sell price, tare weight, sticker ID, lid status, photo, and notes.
 - Sourced jars should be processed quickly from Inventory: snap/add photo, name the jar, enter tare, price, lid status, source/location, save to inventory, print a sticker, and move to the next jar.
+- Raw ingredient inventory is useful for stock counts and reorder planning, but it does not automatically calculate Product COGS. Product COGS comes from recipe line items in Product Notebook > Cost & Pricing.
+- Starter jars and accessories should be seeded into editable inventory records so owners can edit or delete them instead of being stuck with hard-coded sample items.
