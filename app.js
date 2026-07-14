@@ -1,19 +1,19 @@
 
 const products = [
-  {id:'laundry', name:'Laundry Detergent Powder', category:'Laundry', refill:true, pantry:true, unit:'oz', pricePerUnit:0.42, pantryPrice:14, pantrySize:'2 lb pouch', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'dryerballs', name:'Wool Dryer Balls', category:'Laundry', refill:false, pantry:true, unit:'set', pantryPrice:18, pantrySize:'set of 3', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'dishwasher', name:'Dishwasher Detergent Powder', category:'Kitchen', refill:true, pantry:true, unit:'oz', pricePerUnit:0.48, pantryPrice:15, pantrySize:'2 lb pouch', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'dishsoak', name:'Tough Dish Soak', category:'Kitchen', refill:true, pantry:true, unit:'oz', pricePerUnit:0.44, pantryPrice:13, pantrySize:'2 lb pouch', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'solidsoap', name:'Solid Tallow Dish Soap', category:'Kitchen', refill:false, pantry:true, unit:'bar', pantryPrice:16, pantrySize:'1 bar', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'allpurpose', name:'All-Purpose Cleaner', category:'Home', refill:true, pantry:true, unit:'oz', pricePerUnit:0.55, pantryPrice:12, pantrySize:'16 oz bottle', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'glasscleaner', name:'Glass Cleaner', category:'Home', refill:true, pantry:true, unit:'oz', pricePerUnit:0.50, pantryPrice:11, pantrySize:'16 oz bottle', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'linen', name:'Room & Linen Spray', category:'Home', refill:true, pantry:true, unit:'oz', pricePerUnit:1.25, pantryPrice:18, pantrySize:'8 oz bottle', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'miswak', name:'Miswak Toothbrush', category:'Personal Care', refill:false, pantry:true, unit:'each', pantryPrice:7, pantrySize:'1 toothbrush', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'beard', name:'Beard Oil Cream', category:'Eloah', refill:false, pantry:true, unit:'jar', pantryPrice:24, pantrySize:'1 jar', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'magnesium', name:'Magnesium Balm', category:'Eloah', refill:false, pantry:true, unit:'jar', pantryPrice:28, pantrySize:'1 jar', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'tallow', name:'Tallow Lotion', category:'Eloah', refill:false, pantry:true, unit:'jar', pantryPrice:20, pantrySize:'2 oz jar', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'lip', name:'Lip Balm', category:'Eloah', refill:false, pantry:true, unit:'tube', pantryPrice:15, pantrySize:'5 ml', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
-  {id:'callus', name:'Callus & Cuticle Balm', category:'Eloah', refill:false, pantry:true, unit:'jar', pantryPrice:30, pantrySize:'1.5 oz', pantryPricingModel:'format-cogs', pantryCogs:{productAmountCost:null,packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}}
+  {id:'laundry', name:'Laundry Detergent Powder', category:'Laundry', refill:true, pantry:true, unit:'oz', pricePerUnit:0.42, pantryPrice:14, pantrySize:'2 lb pouch', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'dryerballs', name:'Wool Dryer Balls', category:'Laundry', refill:false, pantry:true, unit:'set', pantryPrice:18, pantrySize:'set of 3', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'dishwasher', name:'Dishwasher Detergent Powder', category:'Kitchen', refill:true, pantry:true, unit:'oz', pricePerUnit:0.48, pantryPrice:15, pantrySize:'2 lb pouch', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'dishsoak', name:'Tough Dish Soak', category:'Kitchen', refill:true, pantry:true, unit:'oz', pricePerUnit:0.44, pantryPrice:13, pantrySize:'2 lb pouch', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'solidsoap', name:'Solid Tallow Dish Soap', category:'Kitchen', refill:false, pantry:true, unit:'bar', pantryPrice:16, pantrySize:'1 bar', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'allpurpose', name:'All-Purpose Cleaner', category:'Home', refill:true, pantry:true, unit:'oz', pricePerUnit:0.55, pantryPrice:12, pantrySize:'16 oz bottle', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'glasscleaner', name:'Glass Cleaner', category:'Home', refill:true, pantry:true, unit:'oz', pricePerUnit:0.50, pantryPrice:11, pantrySize:'16 oz bottle', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'linen', name:'Room & Linen Spray', category:'Home', refill:true, pantry:true, unit:'oz', pricePerUnit:1.25, pantryPrice:18, pantrySize:'8 oz bottle', refillPricingModel:'product-only', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'miswak', name:'Miswak Toothbrush', category:'Personal Care', refill:false, pantry:true, unit:'each', pantryPrice:7, pantrySize:'1 toothbrush', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'beard', name:'Beard Oil Cream', category:'Eloah', refill:false, pantry:true, unit:'jar', pantryPrice:24, pantrySize:'1 jar', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'magnesium', name:'Magnesium Balm', category:'Eloah', refill:false, pantry:true, unit:'jar', pantryPrice:28, pantrySize:'1 jar', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'tallow', name:'Tallow Lotion', category:'Eloah', refill:false, pantry:true, unit:'jar', pantryPrice:20, pantrySize:'2 oz jar', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'lip', name:'Lip Balm', category:'Eloah', refill:false, pantry:true, unit:'tube', pantryPrice:15, pantrySize:'5 ml', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}},
+  {id:'callus', name:'Callus & Cuticle Balm', category:'Eloah', refill:false, pantry:true, unit:'jar', pantryPrice:30, pantrySize:'1.5 oz', pantryPricingModel:'format-cogs', pantryCogs:{packagingCost:null,labelCost:null,laborCost:null,wasteBuffer:null,targetMargin:null}}
 ];
 products.push(...getOwnerProducts());
 applyProductOverrides();
@@ -45,6 +45,9 @@ function escapeHTML(value){
     '"':'&quot;',
     "'":'&#039;'
   }[char]));
+}
+function help(text){
+  return `<span class="help-dot" tabindex="0" title="${escapeHTML(text)}" aria-label="${escapeHTML(text)}">?</span>`;
 }
 function productPricingSource(p){ return p.pricingSource || 'assumed'; }
 function productCogsSource(p){ return p.cogsSource || 'missing'; }
@@ -148,11 +151,9 @@ function pantryVariants(product){
     id:variant.id || `size-${index}`,
     size:variant.size,
     price:Number.isFinite(Number(variant.price)) ? Number(variant.price) : 0,
-    packageCost:Number.isFinite(Number(variant.packageCost)) ? Number(variant.packageCost) : null,
-    labelCost:Number.isFinite(Number(variant.labelCost)) ? Number(variant.labelCost) : null,
     notes:variant.notes || ''
   }));
-  if(product.pantry) return [{id:'default',size:product.pantrySize || 'Pantry Ready',price:Number(product.pantryPrice) || 0,packageCost:null,labelCost:null,notes:''}];
+  if(product.pantry) return [{id:'default',size:product.pantrySize || 'Pantry Ready',price:Number(product.pantryPrice) || 0,notes:''}];
   return [];
 }
 function variantKey(productId, variantId){ return `${productId}::${variantId}`; }
@@ -167,7 +168,7 @@ function parseVariantKey(key){
 }
 function parsePantryVariantLines(text, defaultSize, defaultPrice){
   const variants=[];
-  if(defaultSize) variants.push({id:'default',size:defaultSize,price:defaultPrice ?? 0,packageCost:null,labelCost:null,notes:''});
+  if(defaultSize) variants.push({id:'default',size:defaultSize,price:defaultPrice ?? 0,notes:''});
   (text || '').split(/\n+/).map(line=>line.trim()).filter(Boolean).forEach((line,index)=>{
     const [sizePart, pricePart]=line.split('|').map(part=>part?.trim());
     if(!sizePart) return;
@@ -175,8 +176,6 @@ function parsePantryVariantLines(text, defaultSize, defaultPrice){
       id:`size-${index+1}`,
       size:sizePart,
       price:numberOrNull(pricePart) ?? 0,
-      packageCost:null,
-      labelCost:null,
       notes:''
     });
   });
@@ -196,6 +195,7 @@ function glassMeta(g){
   return `${parts.join(' · ')} ${badge}`;
 }
 function commonGoodExtras(){
+  seedStarterExtrasIfNeeded();
   const inventoryExtras=getInventoryItems()
     .filter(item=>sellableExtraCategories.includes(item.category) && (inventoryAmount(item.quantity) ?? 0)>0)
     .map(item=>({
@@ -209,23 +209,61 @@ function commonGoodExtras(){
       imageAlt:item.name,
       stickerId:item.stickerId || item.id
     }));
-  return [...inventoryExtras, ...glass];
+  return inventoryExtras;
 }
 function getSales(){ return JSON.parse(localStorage.getItem('cg_sales')||'[]'); }
 function saveSales(sales){ localStorage.setItem('cg_sales',JSON.stringify(sales)); }
 function getInventoryItems(){ return JSON.parse(localStorage.getItem('cg_inventory_items')||'[]'); }
 function saveInventoryItems(items){ localStorage.setItem('cg_inventory_items',JSON.stringify(items)); }
+function starterExtraCategory(item){
+  if(item.category==='Accessory') return 'Accessory';
+  if(item.category==='Basic jar') return 'Basic jar';
+  return 'One-of-a-kind glass';
+}
+function seedStarterExtrasIfNeeded(){
+  if(localStorage.getItem('cg_seeded_starter_extras_v1')) return;
+  const items=getInventoryItems();
+  const existingIds=new Set(items.map(item=>item.id));
+  const starterItems=glass
+    .filter(item=>!existingIds.has(`starter-${item.id}`))
+    .map(item=>({
+      id:`starter-${item.id}`,
+      name:item.name,
+      productId:'',
+      category:starterExtraCategory(item),
+      subcategory:item.category || '',
+      plannedQuantity:1,
+      quantity:1,
+      unit:'each',
+      reorderPoint:null,
+      location:'Common Good Extras',
+      supplier:'Starter item',
+      link:'',
+      price:item.price,
+      tare:item.tare,
+      stickerId:item.id.toUpperCase(),
+      lidStatus:item.tare!==null && item.tare!==undefined ? 'Needs review' : '',
+      photo:item.imageUrl || '',
+      notes:'Starter item. Edit or delete from Inventory as needed.',
+      updatedAt:new Date().toISOString()
+    }));
+  if(starterItems.length) saveInventoryItems([...starterItems,...items]);
+  localStorage.setItem('cg_seeded_starter_extras_v1','true');
+}
 function getMobileRefillRequests(){ return JSON.parse(localStorage.getItem('cg_mobile_refill_requests')||'[]'); }
 function saveMobileRefillRequests(requests){ localStorage.setItem('cg_mobile_refill_requests',JSON.stringify(requests)); }
 function getOwnerSettings(){ return JSON.parse(localStorage.getItem('cg_owner_settings')||'{}'); }
 function saveOwnerSettings(settings){ localStorage.setItem('cg_owner_settings',JSON.stringify(settings)); }
 function saveOwnerSettingsFromForm(){
+  const current=getOwnerSettings();
   const settings={
+    ...current,
     venmoHandle:document.getElementById('settingVenmoHandle')?.value.trim() || '',
     returnedCheckFee:document.getElementById('settingReturnedCheckFee')?.value.trim() || '',
     storeMode:document.getElementById('settingStoreMode')?.value || 'Self-service',
     alainaPhone:document.getElementById('settingAlainaPhone')?.value.trim() || '',
-    kaeleaPhone:document.getElementById('settingKaeleaPhone')?.value.trim() || ''
+    kaeleaPhone:document.getElementById('settingKaeleaPhone')?.value.trim() || '',
+    ownerReminders:document.getElementById('settingOwnerReminders')?.value.trim() || ''
   };
   saveOwnerSettings(settings);
   const message=document.getElementById('settingsMessage');
@@ -2166,7 +2204,7 @@ function showContainerStep(){
 
 function showCommonGlassStep(){
   const p = products.find(x=>x.id===window.currentRefill.productId);
-  const refillGlass=commonGoodExtras().filter(item=>item.tare!==null && item.tare!==undefined && item.tare!=='' && ['Basic jar','One-of-a-kind glass','Jar / container','Bottle'].includes(item.category));
+  const refillGlass=commonGoodExtras().filter(item=>item.tare!==null && item.tare!==undefined && item.tare!=='' && ['Basic jar','One-of-a-kind glass'].includes(item.category));
   setTitle(p.name);
   app(`
     <section class="card">
@@ -2661,9 +2699,9 @@ function renderRecipeIngredientRows(product){
       <div><label>Recipe amount</label><input id="ingredientAmount${index}" value="${row.recipeAmount ?? ''}" placeholder="1 or 1/2"></div>
       <div><label>Recipe unit</label><input id="ingredientUnit${index}" value="${escapeHTML(row.recipeUnit || '')}" placeholder="cup, oz, g"></div>
       <div><label>Item name</label><input id="ingredientItem${index}" value="${escapeHTML(row.item || '')}" placeholder="Baking soda"></div>
-      <div><label>Container price</label><input id="ingredientCost${index}" type="number" min="0" step=".01" value="${row.containerCost ?? ''}" placeholder="0.00"></div>
-      <div><label>Container size</label><input id="ingredientSize${index}" type="number" min="0" step=".0001" value="${row.containerSize ?? ''}" placeholder="16"></div>
-      <div><label>Container unit</label><input id="ingredientContainerUnit${index}" value="${escapeHTML(row.containerUnit || 'oz')}" placeholder="oz, lb, g"></div>
+      <div><label>Container price ${help('What you paid for the whole purchased package, such as one box, bag, bottle, or case.')}</label><input id="ingredientCost${index}" type="number" min="0" step=".01" value="${row.containerCost ?? ''}" placeholder="0.00"></div>
+      <div><label>Container size ${help('How much product came in that purchased package. Example: a 16 oz box or a 5 lb bag.')}</label><input id="ingredientSize${index}" type="number" min="0" step=".0001" value="${row.containerSize ?? ''}" placeholder="16"></div>
+      <div><label>Container unit ${help('The unit printed on the purchased package. This should match the size above, such as oz, lb, or g.')}</label><input id="ingredientContainerUnit${index}" value="${escapeHTML(row.containerUnit || 'oz')}" placeholder="oz, lb, g"></div>
     </div>
     <div class="grid grid-2">
       <div><label>Supplier / store</label><input id="ingredientSupplier${index}" value="${escapeHTML(row.supplier || '')}" placeholder="Azure, Costco, local store..."></div>
@@ -2675,13 +2713,11 @@ function renderRecipeIngredientRows(product){
 }
 function renderPantryVariantEditor(product){
   const variants=pantryVariants(product);
-  const rows=[...variants, {id:`size-${variants.length+1}`,size:'',price:'',packageCost:'',labelCost:'',notes:''}];
+  const rows=[...variants, {id:`size-${variants.length+1}`,size:'',price:'',notes:''}];
   return rows.map((variant,index)=>`<article class="summary cogs-line">
     <div class="grid grid-3">
       <div><label>Size / format</label><input id="variantSize${index}" value="${escapeHTML(variant.size || '')}" placeholder="1 oz jar"></div>
       <div><label>Retail price</label><input id="variantPrice${index}" type="number" min="0" step=".01" value="${variant.price ?? ''}" placeholder="0.00"></div>
-      <div><label>Packaging cost</label><input id="variantPackageCost${index}" type="number" min="0" step=".01" value="${variant.packageCost ?? ''}" placeholder="Optional"></div>
-      <div><label>Label cost</label><input id="variantLabelCost${index}" type="number" min="0" step=".01" value="${variant.labelCost ?? ''}" placeholder="Optional"></div>
       <div><label>Notes</label><input id="variantNotes${index}" value="${escapeHTML(variant.notes || '')}" placeholder="Jar type, lid, scent, etc."></div>
     </div>
   </article>`).join('');
@@ -2696,8 +2732,6 @@ function readPantryVariantEditor(product){
         id:index===0 ? 'default' : `size-${index}`,
         size,
         price:numberOrNull(document.getElementById(`variantPrice${index}`)?.value) ?? 0,
-        packageCost:numberOrNull(document.getElementById(`variantPackageCost${index}`)?.value),
-        labelCost:numberOrNull(document.getElementById(`variantLabelCost${index}`)?.value),
         notes:document.getElementById(`variantNotes${index}`)?.value.trim() || ''
       });
     }
@@ -2799,7 +2833,6 @@ function saveNotebookProduct(activeTab='overview'){
   if(document.getElementById('notebookOwnerNotes')) updated.ownerNotes=readValue('notebookOwnerNotes').trim();
   if(document.getElementById('notebookRecipe')) updated.recipeNotes=readValue('notebookRecipe').trim();
   if(document.getElementById('notebookBatchNotes')) updated.batchNotes=readValue('notebookBatchNotes').trim();
-  if(document.getElementById('notebookMaterialsCost')) updated.pantryCogs.productAmountCost=numberOrNull(readValue('notebookMaterialsCost'));
   if(document.getElementById('notebookPackagingCost')) updated.pantryCogs.packagingCost=numberOrNull(readValue('notebookPackagingCost'));
   if(document.getElementById('notebookLabelCost')) updated.pantryCogs.labelCost=numberOrNull(readValue('notebookLabelCost'));
   if(document.getElementById('notebookWasteBuffer')) updated.pantryCogs.wasteBuffer=numberOrNull(readValue('notebookWasteBuffer'));
@@ -2862,7 +2895,6 @@ function saveNewProduct(){
   const status=document.getElementById('newProductStatus')?.value || 'inactive';
   const pantryVariants=pantry ? parsePantryVariantLines(document.getElementById('newProductPantryVariants')?.value, pantrySize, pantryPrice ?? 0) : [];
   const pantryCogs={
-    productAmountCost:numberOrNull(document.getElementById('newProductMaterialsCost')?.value),
     packagingCost:numberOrNull(document.getElementById('newProductPackagingCost')?.value),
     labelCost:numberOrNull(document.getElementById('newProductLabelCost')?.value),
     laborCost:numberOrNull(document.getElementById('newProductLaborCost')?.value),
@@ -3471,12 +3503,11 @@ function showAdmin(tab='dashboard'){
         <div><label>Additional Pantry Ready sizes</label><textarea id="newProductPantryVariants" placeholder="One per line: 1 oz jar | 12.00&#10;2 oz jar | 20.00"></textarea><p class="small">Use this when one product has multiple packaged sizes.</p></div>
         <div><label>Recipe / materials</label><textarea id="newProductRecipe" placeholder="Ingredients, yield, supplier notes, batch notes"></textarea></div>
         <div class="grid grid-3">
-          <div><label>Materials cost</label><input id="newProductMaterialsCost" type="number" min="0" step=".01" placeholder="0.00"></div>
-          <div><label>Packaging cost</label><input id="newProductPackagingCost" type="number" min="0" step=".01" placeholder="0.00"></div>
-          <div><label>Label cost</label><input id="newProductLabelCost" type="number" min="0" step=".01" placeholder="0.00"></div>
-          <div><label>Labor cost</label><input id="newProductLaborCost" type="number" min="0" step=".01" placeholder="0.00"></div>
-          <div><label>Waste buffer</label><input id="newProductWasteBuffer" type="number" min="0" step=".01" placeholder="0.00"></div>
-          <div><label>Target margin</label><input id="newProductTargetMargin" type="number" min="0" step=".01" placeholder="Example: 0.55"></div>
+          <div><label>Packaging cost ${help('Cost for the jar, pouch, bottle, lid, or other package for one Pantry Ready item.')}</label><input id="newProductPackagingCost" type="number" min="0" step=".01" placeholder="0.00"></div>
+          <div><label>Label cost ${help('Cost for one finished label. Leave blank if you do not know it yet.')}</label><input id="newProductLabelCost" type="number" min="0" step=".01" placeholder="0.00"></div>
+          <div><label>Labor cost ${help('Temporary labor estimate for this product. The Product Notebook can calculate labor more clearly from minutes and hourly rate later.')}</label><input id="newProductLaborCost" type="number" min="0" step=".01" placeholder="0.00"></div>
+          <div><label>Waste buffer ${help('Extra cost added to cover spill, shrink, leftover product, testing loss, or normal production waste.')}</label><input id="newProductWasteBuffer" type="number" min="0" step=".01" placeholder="0.00"></div>
+          <div><label>Target margin ${help('Desired margin as a decimal. Example: 0.55 means 55 percent margin.')}</label><input id="newProductTargetMargin" type="number" min="0" step=".01" placeholder="Example: 0.55"></div>
         </div>
         <div><label>Locations</label><textarea id="newProductLocations" placeholder="Common Good, markets, trunk box, future locations..."></textarea></div>
         <div><label>Social media aspects</label><textarea id="newProductMarketing" placeholder="Buying lenses, sensory details, story, best use cases, customer pain points"></textarea></div>
@@ -3496,20 +3527,20 @@ function showAdmin(tab='dashboard'){
     const categoryOptions=inventoryCategories.map(category=>`<option>${category}</option>`).join('');
     body=`<section class="card"><h2>Inventory</h2>
       <div class="notice">Track raw ingredients, packaging, finished goods, refill stock, trunk boxes, market stock, accessories, and sourced jars without turning each one into a whole product setup.</div>
+      <div class="notice">Raw ingredient inventory is for stock counts and reorder planning only. Product COGS is calculated from the recipe line items inside Product Notebook > Cost & Pricing.</div>
       <div class="spacer"></div>
       <details class="summary" open>
         <summary>Quick process sourced jar</summary>
         <div class="form-grid">
           <div class="grid grid-3">
             <div><label>Jar name</label><input id="jarProcessName" placeholder="Blue lid pint jar, estate amber canister..."></div>
-            <div><label>Sticker ID</label><input id="jarProcessStickerId" placeholder="Auto if blank"></div>
-            <div><label>Category</label><select id="jarProcessCategory"><option>One-of-a-kind glass</option><option>Basic jar</option><option>Accessory</option></select></div>
-            <div><label>Tare weight</label><input id="jarProcessTare" type="number" step=".01" placeholder="oz"></div>
-            <div><label>Sell price</label><input id="jarProcessPrice" type="number" step=".01" placeholder="0.00"></div>
-            <div><label>Location</label><input id="jarProcessLocation" placeholder="Processing, shelf, trunk box, market tote"></div>
-            <div><label>Lid status</label><select id="jarProcessLidStatus"><option>Has sealing lid</option><option>Needs lid</option><option>Decor only</option><option>Needs review</option></select></div>
+            <div><label>Sticker ID ${help('Short code printed on the item sticker. Leave blank and the app will create one.')}</label><input id="jarProcessStickerId" placeholder="Auto if blank"></div>
+            <div><label>Category ${help('Choose how this item should be treated in inventory and Common Good Extras.')}</label><select id="jarProcessCategory"><option>One-of-a-kind glass</option><option>Basic jar</option><option>Accessory</option></select></div>
+            <div><label>Tare weight ${help('Empty weight of the jar in ounces. Needed if this jar can be used for refills.')}</label><input id="jarProcessTare" type="number" step=".01" placeholder="oz"></div>
+            <div><label>Sell price ${help('Customer price for this jar or accessory in Common Good Extras.')}</label><input id="jarProcessPrice" type="number" step=".01" placeholder="0.00"></div>
+            <div><label>Location ${help('Where the item physically is right now: processing, shelf, trunk box, market tote, etc.')}</label><input id="jarProcessLocation" placeholder="Processing, shelf, trunk box, market tote"></div>
+            <div><label>Lid status ${help('Only jars with sealing lids should become sellable refill containers. Use this to flag anything needing review.')}</label><select id="jarProcessLidStatus"><option>Has sealing lid</option><option>Needs lid</option><option>Decor only</option><option>Needs review</option></select></div>
             <div><label>Source</label><input id="jarProcessSource" placeholder="Estate sale, donated, thrifted..."></div>
-            <div><label>Type / size</label><input id="jarProcessSubcategory" placeholder="Pint, pump bottle, gasket jar..."></div>
           </div>
           <div class="grid grid-2">
             <div><label>Quick photo</label><input type="file" accept="image/*" capture="environment" onchange="handleJarProcessPhoto(this)"><input id="jarProcessPhotoData" type="hidden"><div id="jarProcessPhotoPreview"></div></div>
@@ -3524,18 +3555,17 @@ function showAdmin(tab='dashboard'){
         <div class="form-grid">
           <div class="grid grid-3">
             <div><label>Item name</label><input id="inventoryName" placeholder="Example: Baking soda, 8 oz amber bottle, Tallow Lotion 2 oz"></div>
-            <div><label>Linked product</label><select id="inventoryProductId"><option value="">Not product-specific</option>${products.map(product=>`<option value="${product.id}">${product.name}</option>`).join('')}</select></div>
-            <div><label>Category</label><select id="inventoryCategory">${categoryOptions}</select></div>
-            <div><label>Type / department</label><input id="inventorySubcategory" placeholder="Bottle, brush, laundry, jar size..."></div>
-            <div><label>Location</label><input id="inventoryLocation" placeholder="Common Good, trunk box, market tote..."></div>
-            <div><label>Planned amount</label><input id="inventoryPlannedQuantity" type="number" step=".01" placeholder="Target count or amount"></div>
-            <div><label>Actual products on hand</label><input id="inventoryActualQuantity" type="number" step=".01" placeholder="What is actually there"></div>
-            <div><label>Unit</label><input id="inventoryUnit" placeholder="oz, lb, each, bottles, jars"></div>
-            <div><label>Reorder point</label><input id="inventoryReorder" type="number" step=".01" placeholder="Optional"></div>
-            <div><label>Sell price</label><input id="inventoryPrice" type="number" step=".01" placeholder="Optional"></div>
-            <div><label>Tare weight</label><input id="inventoryTare" type="number" step=".01" placeholder="Optional oz"></div>
-            <div><label>Sticker ID</label><input id="inventoryStickerId" placeholder="Optional"></div>
-            <div><label>Lid status</label><select id="inventoryLidStatus"><option value="">Not applicable</option><option>Has sealing lid</option><option>Needs lid</option><option>Decor only</option><option>Needs review</option></select></div>
+            <div><label>Linked product ${help('Use this when the inventory item belongs to a specific product, like Tallow Lotion 2 oz or Laundry Powder bulk stock.')}</label><select id="inventoryProductId"><option value="">Not product-specific</option>${products.map(product=>`<option value="${product.id}">${product.name}</option>`).join('')}</select></div>
+            <div><label>Category ${help('Controls where this item appears in inventory reports and whether it can show as a sellable Extra.')}</label><select id="inventoryCategory">${categoryOptions}</select></div>
+            <div><label>Location ${help('Physical place this inventory lives: shelf, trunk box, market tote, production shelf, etc.')}</label><input id="inventoryLocation" placeholder="Common Good, trunk box, market tote..."></div>
+            <div><label>Planned amount ${help('How much you intended or want to have available.')}</label><input id="inventoryPlannedQuantity" type="number" step=".01" placeholder="Target count or amount"></div>
+            <div><label>Actual products on hand ${help('How much is actually there right now. Difference is calculated from actual minus planned.')}</label><input id="inventoryActualQuantity" type="number" step=".01" placeholder="What is actually there"></div>
+            <div><label>Unit ${help('How this item is counted: each, oz, lb, jars, bottles, sets, etc.')}</label><input id="inventoryUnit" placeholder="oz, lb, each, bottles, jars"></div>
+            <div><label>Reorder point ${help('Optional low-stock number. If actual is at or below this, it becomes an inventory alert.')}</label><input id="inventoryReorder" type="number" step=".01" placeholder="Optional"></div>
+            <div><label>Sell price ${help('Only needed for sellable Extras like jars, brushes, loofahs, wool balls, or other merchandise.')}</label><input id="inventoryPrice" type="number" step=".01" placeholder="Optional"></div>
+            <div><label>Tare weight ${help('Only needed for jars or bottles that can be used for refill checkout.')}</label><input id="inventoryTare" type="number" step=".01" placeholder="Optional oz"></div>
+            <div><label>Sticker ID ${help('Optional label code for the physical item. Use Print to make a simple sticker.')}</label><input id="inventoryStickerId" placeholder="Optional"></div>
+            <div><label>Lid status ${help('Use this for jars and bottles so you know whether they are ready to sell or need a sealing lid.')}</label><select id="inventoryLidStatus"><option value="">Not applicable</option><option>Has sealing lid</option><option>Needs lid</option><option>Decor only</option><option>Needs review</option></select></div>
           </div>
           <div class="grid grid-2">
             <div><label>Supplier / source</label><input id="inventorySupplier" placeholder="Azure, Costco, Uline, estate sale..."></div>
@@ -3635,6 +3665,14 @@ function showAdmin(tab='dashboard'){
   }
   if(tab==='settings'){
     const settings=getOwnerSettings();
+    const defaultOwnerReminders=[
+      'Better UI ideas:',
+      '',
+      'Reports should stay buried inside Sales Ledger and Inventory unless they need quick switching.',
+      'Inventory should keep getting simpler: raw ingredients, packaging, finished goods, refill stock, trunk box, markets, reorder points, accessories, and one-of-a-kind glass.',
+      'Connect real text updates: customer request updates plus owner alerts for Kaelea and Alaina.',
+      'Owner security: replace device-remembered password access with real owner accounts when the app moves beyond static hosting.'
+    ].join('\n');
     body=`<section class="card"><h2>Settings</h2>
       <label>Venmo business handle</label><input id="settingVenmoHandle" placeholder="Enter verified business Venmo handle" value="${escapeHTML(settings.venmoHandle || '')}">
       <label>Returned-check fee wording</label><textarea id="settingReturnedCheckFee">${escapeHTML(settings.returnedCheckFee || 'Returned checks are subject to the posted fee and collection costs allowed by law.')}</textarea>
@@ -3647,13 +3685,10 @@ function showAdmin(tab='dashboard'){
       <p id="settingsMessage" class="small"></p></section>
       <section class="card">
         <h2>Owner Reminders</h2>
-        <div class="notice">Next build priorities to remember before this becomes a real operating system.</div>
-        <ul>
-          <li>Add Reports: sales by date range, product, location, payment method, Pantry Ready, variance, donations, and discrepancies.</li>
-          <li>Build out Inventory: raw ingredients, packaging, finished goods, refill stock, trunk box, markets, reorder points, and one-of-a-kind glass.</li>
-          <li>Connect real text updates: customer request updates plus owner alerts for Kaelea and Alaina.</li>
-          <li>Owner security: replace device-remembered password access with real owner accounts when the app moves beyond static hosting.</li>
-        </ul>
+        <div class="notice">Use this as a running scratchpad for better UI ideas, future build notes, and things you want to remember before the next update.</div>
+        <label>Reminder notes</label>
+        <textarea id="settingOwnerReminders" class="tall-notes" placeholder="Add better UI ideas, workflow notes, and future build reminders here.">${escapeHTML(settings.ownerReminders || defaultOwnerReminders)}</textarea>
+        <button class="primary" type="button" onclick="saveOwnerSettingsFromForm()">Save reminders</button>
       </section>
       <section class="card">
         <h2>Text Updates</h2>
@@ -3742,16 +3777,16 @@ function renderNotebook(activeTab='overview'){
       <section class="summary">
         <h3>Production and packaging</h3>
         <div class="grid grid-3">
-          <div><label>Time to produce (minutes)</label><input id="notebookLaborMinutes" type="number" min="0" step="1" value="${p.laborMinutes ?? ''}" placeholder="45"></div>
-          <div><label>Hourly labor rate</label><input id="notebookHourlyLaborRate" type="number" min="0" step=".01" value="${p.hourlyLaborRate ?? defaultHourlyLaborRate.toFixed(2)}" placeholder="30.00"></div>
+          <div><label>Time to produce ${help('Total hands-on minutes for this batch. The app multiplies this by hourly labor rate.')}</label><input id="notebookLaborMinutes" type="number" min="0" step="1" value="${p.laborMinutes ?? ''}" placeholder="45"></div>
+          <div><label>Hourly labor rate ${help('Internal labor value per hour. Default is 30.00 unless changed here.')}</label><input id="notebookHourlyLaborRate" type="number" min="0" step=".01" value="${p.hourlyLaborRate ?? defaultHourlyLaborRate.toFixed(2)}" placeholder="30.00"></div>
           <div class="summary"><strong>Calculated labor cost</strong><div class="price">${money(cogsSummary.labor)}</div><p class="small">Time to produce × hourly labor rate.</p></div>
-          <div><label>Batch yield amount</label><input id="notebookBatchYieldAmount" type="number" min="0" step=".01" value="${p.batchYieldAmount ?? ''}" placeholder="Example: 128"></div>
-          <div><label>Batch yield unit</label><input id="notebookBatchYieldUnit" value="${escapeHTML(p.batchYieldUnit || p.unit || 'oz')}" placeholder="oz, g, each"></div>
-          <div><label>Pantry Ready packages made</label><input id="notebookPantryPackageCount" type="number" min="0" step="1" value="${p.pantryPackageCount ?? ''}" placeholder="Example: 8"></div>
-          <div><label>Packaging cost per package</label><input id="notebookPackagingCost" type="number" min="0" step=".01" value="${cogs.packagingCost ?? ''}" placeholder="0.00"></div>
-          <div><label>Label cost per package</label><input id="notebookLabelCost" type="number" min="0" step=".01" value="${cogs.labelCost ?? ''}" placeholder="0.00"></div>
-          <div><label>Waste buffer for batch</label><input id="notebookWasteBuffer" type="number" min="0" step=".01" value="${cogs.wasteBuffer ?? ''}" placeholder="0.00"></div>
-          <div><label>Target margin</label><input id="notebookTargetMargin" type="number" min="0" step=".01" value="${cogs.targetMargin ?? ''}" placeholder="Example: 0.55"></div>
+          <div><label>Batch yield amount ${help('Total usable product made by the batch. Used to calculate refill COGS per unit.')}</label><input id="notebookBatchYieldAmount" type="number" min="0" step=".01" value="${p.batchYieldAmount ?? ''}" placeholder="Example: 128"></div>
+          <div><label>Batch yield unit ${help('Unit for the batch yield, usually oz or g. This becomes the refill COGS unit.')}</label><input id="notebookBatchYieldUnit" value="${escapeHTML(p.batchYieldUnit || p.unit || 'oz')}" placeholder="oz, g, each"></div>
+          <div><label>Pantry Ready packages made ${help('How many finished Pantry Ready items this batch makes. Used to split product and labor cost per package.')}</label><input id="notebookPantryPackageCount" type="number" min="0" step="1" value="${p.pantryPackageCount ?? ''}" placeholder="Example: 8"></div>
+          <div><label>Packaging cost per package ${help('Cost of one jar, pouch, bottle, lid, or other package for one finished Pantry Ready item.')}</label><input id="notebookPackagingCost" type="number" min="0" step=".01" value="${cogs.packagingCost ?? ''}" placeholder="0.00"></div>
+          <div><label>Label cost per package ${help('Cost of one label for one finished Pantry Ready item.')}</label><input id="notebookLabelCost" type="number" min="0" step=".01" value="${cogs.labelCost ?? ''}" placeholder="0.00"></div>
+          <div><label>Waste buffer for batch ${help('Extra batch cost for spill, shrink, testing, leftovers, or normal production loss.')}</label><input id="notebookWasteBuffer" type="number" min="0" step=".01" value="${cogs.wasteBuffer ?? ''}" placeholder="0.00"></div>
+          <div><label>Target margin ${help('Desired margin as a decimal. Example: 0.55 means 55 percent margin.')}</label><input id="notebookTargetMargin" type="number" min="0" step=".01" value="${cogs.targetMargin ?? ''}" placeholder="Example: 0.55"></div>
         </div>
         <div class="grid grid-2">
           <div><label>Packaging photo link</label><input id="notebookPackagingPhoto" value="${escapeHTML(p.packagingPhoto || '')}" placeholder="Optional image URL or file note"></div>
