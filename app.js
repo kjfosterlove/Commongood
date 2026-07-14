@@ -2967,6 +2967,58 @@ function deleteInventoryItem(index){
   showAdmin('inventory');
 }
 
+function dashboardInventoryAlerts(){
+  return getInventoryItems().filter(item=>{
+    const actual=inventoryAmount(item.quantity) ?? 0;
+    const difference=inventoryDifference(item);
+    const reorder=inventoryAmount(item.reorderPoint);
+    return (difference!==null && difference<0) || (reorder!==null && actual<=reorder);
+  }).slice(0,6);
+}
+function dashboardProductPipeline(){
+  const counts={active:0,testing:0,future:0,inactive:0,discontinued:0};
+  products.forEach(product=>{ counts[productStatus(product)]=(counts[productStatus(product)] || 0)+1; });
+  return counts;
+}
+function dashboardOpenRequestCards(requests){
+  const open=requests.filter(mobileRequestOpen).slice(0,4);
+  if(!open.length) return '<p class="small">No open Pantry Ready requests.</p>';
+  return open.map(request=>{
+    const productsText=(request.products||[]).map(product=>product.name).join(', ') || 'See notes';
+    return `<article class="mini-row">
+      <div><strong>${escapeHTML(request.name || 'Unnamed request')}</strong><p class="small">${formatSaleDate(request.date)} · ${escapeHTML(productsText)}</p></div>
+      ${requestStatusBadge(mobileRequestStatusLabel(request))}
+    </article>`;
+  }).join('');
+}
+function dashboardRecentSales(sales){
+  const recent=[...sales].sort((a,b)=>new Date(b.date || 0)-new Date(a.date || 0)).slice(0,5);
+  if(!recent.length) return '<p class="small">No sales recorded yet.</p>';
+  return recent.map(sale=>{
+    const variance=saleVariance(sale);
+    const entered=saleEnteredAmount(sale);
+    return `<article class="mini-row">
+      <div><strong>${money(saleExpectedTotal(sale))}</strong><p class="small">${formatSaleDate(sale.date)} · ${escapeHTML(sale.method || 'Payment')} · ${escapeHTML(sale.passcode || 'No code')}</p></div>
+      <span class="small">${entered===null?'Not counted':`Variance ${money(variance || 0)}`}</span>
+    </article>`;
+  }).join('');
+}
+function dashboardInventoryAlertRows(items){
+  if(!items.length) return '<p class="small">No inventory shortages or reorder alerts.</p>';
+  return items.map(item=>{
+    const difference=inventoryDifference(item);
+    const actual=inventoryAmount(item.quantity) ?? 0;
+    const unit=item.unit || 'units';
+    const alertText=difference!==null && difference<0
+      ? `Short ${inventoryAmountLabel(Math.abs(difference))} ${unit}`
+      : `At reorder point: ${inventoryAmountLabel(actual)} ${unit}`;
+    return `<article class="mini-row">
+      <div><strong>${escapeHTML(item.name || 'Inventory item')}</strong><p class="small">${escapeHTML(item.location || 'No location')} · Planned ${inventoryAmountLabel(item.plannedQuantity)} · Actual ${inventoryAmountLabel(actual)}</p></div>
+      <span class="source-badge short">${escapeHTML(alertText)}</span>
+    </article>`;
+  }).join('');
+}
+
 function showAdmin(tab='dashboard'){
   setTitle('Common Good Workroom');
   const tabs=`<div class="tabs">
@@ -2983,13 +3035,59 @@ function showAdmin(tab='dashboard'){
     const sales=getSales();
     const requests=getMobileRefillRequests();
     const openRequests=requests.filter(mobileRequestOpen).length;
+    const scheduledRequests=requests.filter(request=>request.scheduled && !request.delivered).length;
     const revenue=sales.reduce((s,x)=>s+x.total,0);
     const counted=sales.filter(s=>saleEnteredAmount(s)!==null).length;
-    body=`<div class="grid grid-3">
-      <button class="card dashboard-card" type="button" onclick="showAdmin('sales')"><div class="small">Recorded sales</div><div class="price">${sales.length}</div></button>
-      <button class="card dashboard-card" type="button" onclick="showAdmin('sales')"><div class="small">Revenue</div><div class="price">${money(revenue)}</div></button>
-      <button class="card dashboard-card" type="button" onclick="showAdmin('sales')"><div class="small">Counted payments</div><div class="price">${counted}</div></button>
-      <button class="card dashboard-card" type="button" onclick="showAdmin('requests')"><div class="small">Open Pantry Ready requests</div><div class="price">${openRequests}</div></button>
+    const uncounted=sales.length-counted;
+    const countedVariance=sales.reduce((sum,sale)=>sum+(saleVariance(sale) ?? 0),0);
+    const inventoryAlerts=dashboardInventoryAlerts();
+    const pipeline=dashboardProductPipeline();
+    const missingCogs=products.filter(product=>['active','testing'].includes(productStatus(product)) && productCogsSource(product)!=='entered').length;
+    const missingOwnerPhones=ownerTextContacts().filter(contact=>!normalizePhone(contact.phone)).map(contact=>contact.name);
+    body=`<section class="card dashboard-hero">
+      <div>
+        <div class="eyebrow">OWNER WORKROOM</div>
+        <h2>Today at a glance</h2>
+        <p class="small">Use this page first. Jump into the deeper tabs only when you need to edit, reconcile, or build something.</p>
+      </div>
+      <div class="button-row dashboard-actions">
+        <button class="secondary" type="button" onclick="showAdmin('addProduct')">Add product</button>
+        <button class="secondary" type="button" onclick="showAdmin('inventory')">Add inventory</button>
+        <button class="secondary" type="button" onclick="showAdmin('sales')">Record sale</button>
+        <button class="secondary" type="button" onclick="showAdmin('marketing')">Create post</button>
+      </div>
+    </section>
+    <div class="grid grid-3 dashboard-metrics">
+      <button class="card dashboard-card" type="button" onclick="showAdmin('sales')"><div class="small">Sales recorded</div><div class="price">${sales.length}</div><p class="small">${money(revenue)} expected total</p></button>
+      <button class="card dashboard-card" type="button" onclick="showAdmin('sales')"><div class="small">Payments needing count</div><div class="price">${uncounted}</div><p class="small">Counted variance ${money(countedVariance)}</p></button>
+      <button class="card dashboard-card" type="button" onclick="showAdmin('requests')"><div class="small">Open Pantry Ready</div><div class="price">${openRequests}</div><p class="small">${scheduledRequests} scheduled</p></button>
+      <button class="card dashboard-card" type="button" onclick="showAdmin('inventory')"><div class="small">Inventory alerts</div><div class="price">${inventoryAlerts.length}</div><p class="small">Short or at reorder point</p></button>
+      <button class="card dashboard-card" type="button" onclick="showAdmin('products')"><div class="small">Testing / future products</div><div class="price">${(pipeline.testing || 0)+(pipeline.future || 0)}</div><p class="small">${pipeline.active || 0} active products</p></button>
+      <button class="card dashboard-card" type="button" onclick="showAdmin('products')"><div class="small">COGS to finish</div><div class="price">${missingCogs}</div><p class="small">Active or testing products</p></button>
+    </div>
+    ${missingOwnerPhones.length?`<div class="notice warning">Add ${missingOwnerPhones.join(' and ')}'s phone number in Settings so Pantry Ready request texts are ready.</div>`:''}
+    <div class="grid grid-2 dashboard-panels">
+      <section class="card">
+        <div class="section-head"><h3>Open Pantry Ready Requests</h3><button class="quiet" type="button" onclick="showAdmin('requests')">View all</button></div>
+        <div class="mini-list">${dashboardOpenRequestCards(requests)}</div>
+      </section>
+      <section class="card">
+        <div class="section-head"><h3>Recent Sales</h3><button class="quiet" type="button" onclick="showAdmin('sales')">Open ledger</button></div>
+        <div class="mini-list">${dashboardRecentSales(sales)}</div>
+      </section>
+      <section class="card">
+        <div class="section-head"><h3>Inventory Needing Attention</h3><button class="quiet" type="button" onclick="showAdmin('inventory')">Open inventory</button></div>
+        <div class="mini-list">${dashboardInventoryAlertRows(inventoryAlerts)}</div>
+      </section>
+      <section class="card">
+        <div class="section-head"><h3>Product Pipeline</h3><button class="quiet" type="button" onclick="showAdmin('products')">Open products</button></div>
+        <div class="pipeline-grid">
+          <button class="summary dashboard-card" type="button" onclick="showAdmin('products')"><strong>Active</strong><div class="price">${pipeline.active || 0}</div></button>
+          <button class="summary dashboard-card" type="button" onclick="showAdmin('products')"><strong>Testing</strong><div class="price">${pipeline.testing || 0}</div></button>
+          <button class="summary dashboard-card" type="button" onclick="showAdmin('products')"><strong>Future</strong><div class="price">${pipeline.future || 0}</div></button>
+          <button class="summary dashboard-card" type="button" onclick="showAdmin('products')"><strong>Inactive</strong><div class="price">${pipeline.inactive || 0}</div></button>
+        </div>
+      </section>
     </div>`;
   }
   if(tab==='sales'){

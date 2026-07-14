@@ -47,6 +47,7 @@
 - Product details should be entered once and auto-populate customer shopping screens, Product Notebook, COGS/pricing, inventory, location availability, and Marketing Studio.
 - Add Product should save owner-created products locally, show inactive products only in the Workroom, and show active products on customer-facing refill, Pantry Ready, and request screens based on selected formats.
 - Product Notebook should stay streamlined: Overview, Recipe, Cost & Pricing, Packaging & Labels, and Marketing. COGS and pricing belong together because refill and Pantry Ready prices are decided from the cost basis.
+- Owner Dashboard should act as the Workroom front desk: recent sales, open Pantry Ready requests, inventory alerts, product pipeline, COGS-to-finish count, missing owner text settings, and quick action buttons. Deeper tabs should remain for work that needs focused editing or fast switching.
 - COGS calculator should pull recipe lines into costable ingredient rows. Each row should capture recipe amount/unit, purchased container cost, purchased container size/unit, supplier, purchase link, and notes.
 - COGS should also capture time to produce, labor rate/cost, packaging cost, label cost, optional packaging photo/link, waste buffer, and target margin.
 - COGS should be understandable as both refill cost per unit and Pantry Ready cost per package, since refill pricing is usually per ounce/gram and Pantry Ready pricing is usually per finished jar, bottle, pouch, bar, or set.

@@ -98,6 +98,62 @@ p { line-height: 1.45; }
   outline: 2px solid rgba(108, 92, 44, .18);
   outline-offset: 2px;
 }
+.dashboard-hero {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.dashboard-hero h2 {
+  margin-bottom: 4px;
+}
+.dashboard-actions {
+  justify-content: flex-end;
+  margin: 0;
+}
+.dashboard-actions button {
+  flex: 0 1 auto;
+}
+.dashboard-metrics {
+  margin-bottom: 14px;
+}
+.dashboard-panels {
+  align-items: start;
+  margin-top: 14px;
+}
+.section-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.section-head h3 {
+  margin: 0;
+}
+.mini-list {
+  display: grid;
+  gap: 8px;
+}
+.mini-row {
+  align-items: center;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+.mini-row p {
+  margin-bottom: 0;
+}
+.pipeline-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 #app,
 .hero,
 .card,
@@ -673,6 +729,19 @@ th { background: var(--soft); }
   .bank-card-head {
     display: grid;
     gap: 10px;
+  }
+  .dashboard-hero,
+  .mini-row,
+  .section-head {
+    align-items: stretch;
+    display: grid;
+  }
+  .dashboard-actions {
+    justify-content: stretch;
+  }
+  .dashboard-actions button,
+  .section-head button {
+    width: 100%;
   }
   .bank-actions {
     justify-content: flex-start;
