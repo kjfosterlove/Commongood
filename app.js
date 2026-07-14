@@ -45,7 +45,25 @@ function escapeHTML(value){
 }
 function productPricingSource(p){ return p.pricingSource || 'assumed'; }
 function productCogsSource(p){ return p.cogsSource || 'missing'; }
-function isProductActive(p){ return p.active !== false; }
+const productStatusOptions=[
+  {value:'active',label:'Active / customer visible'},
+  {value:'testing',label:'Testing'},
+  {value:'future',label:'Future product'},
+  {value:'inactive',label:'Inactive for now'},
+  {value:'discontinued',label:'Discontinued'}
+];
+function productStatus(p){
+  if(p.status) return p.status;
+  return p.active === false ? 'inactive' : 'active';
+}
+function productStatusLabel(status){
+  return productStatusOptions.find(option=>option.value===status)?.label.replace(' / customer visible','') || 'Inactive';
+}
+function productStatusBadge(p){
+  const status=productStatus(p);
+  return `<span class="badge ${status}">${productStatusLabel(status)}</span>`;
+}
+function isProductActive(p){ return productStatus(p)==='active'; }
 function getOwnerProducts(){ return JSON.parse(localStorage.getItem('cg_owner_products')||'[]'); }
 function saveOwnerProducts(ownerProducts){ localStorage.setItem('cg_owner_products',JSON.stringify(ownerProducts)); }
 function getProductOverrides(){ return JSON.parse(localStorage.getItem('cg_product_overrides')||'{}'); }
@@ -2569,15 +2587,24 @@ function productCogsSummary(product){
   const packaging=Number(cogs.packagingCost) || 0;
   const label=Number(cogs.labelCost) || 0;
   const hourlyRate=Number(product.hourlyLaborRate) || defaultHourlyLaborRate;
-  const labor=(Number(product.laborMinutes) || 0) * (hourlyRate/60);
+  const laborMinutes=Number(product.laborMinutes);
+  const labor=Number.isFinite(laborMinutes) && laborMinutes>0 ? laborMinutes * (hourlyRate/60) : Number(cogs.laborCost) || 0;
   const waste=Number(cogs.wasteBuffer) || 0;
   const bulkTotal=ingredientTotal+waste;
-  const pantryTotal=bulkTotal+packaging+label+labor;
+  const batchYieldAmount=Number(product.batchYieldAmount);
+  const pantryPackageCount=Number(product.pantryPackageCount);
+  const refillUnitCost=Number.isFinite(batchYieldAmount) && batchYieldAmount>0 ? bulkTotal/batchYieldAmount : null;
+  const bulkCostPerPackage=Number.isFinite(pantryPackageCount) && pantryPackageCount>0 ? bulkTotal/pantryPackageCount : null;
+  const laborPerPackage=Number.isFinite(pantryPackageCount) && pantryPackageCount>0 ? labor/pantryPackageCount : null;
+  const pantryPackageCost=bulkCostPerPackage===null || laborPerPackage===null ? null : bulkCostPerPackage+packaging+label+laborPerPackage;
+  const pantryTotal=Number.isFinite(pantryPackageCount) && pantryPackageCount>0
+    ? (bulkTotal+labor)+(packaging+label)*pantryPackageCount
+    : bulkTotal+packaging+label+labor;
   const targetMargin=Number(cogs.targetMargin);
   const suggestedPantryPrice=Number.isFinite(targetMargin) && targetMargin>0 && targetMargin<1
-    ? pantryTotal/(1-targetMargin)
+    ? (pantryPackageCost!==null ? pantryPackageCost : pantryTotal)/(1-targetMargin)
     : null;
-  return {ingredientTotal,packaging,label,labor,waste,bulkTotal,pantryTotal,suggestedPantryPrice};
+  return {ingredientTotal,packaging,label,labor,waste,bulkTotal,pantryTotal,batchYieldAmount,pantryPackageCount,refillUnitCost,pantryPackageCost,suggestedPantryPrice};
 }
 function renderRecipeIngredientRows(product){
   const rows=recipeIngredientRows(product);
@@ -2659,12 +2686,32 @@ function saveNotebookCogsCalculator(activeTab='cogs'){
   };
   product.laborMinutes=numberOrNull(document.getElementById('notebookLaborMinutes')?.value);
   product.hourlyLaborRate=numberOrNull(document.getElementById('notebookHourlyLaborRate')?.value);
+  product.batchYieldAmount=numberOrNull(document.getElementById('notebookBatchYieldAmount')?.value);
+  product.batchYieldUnit=document.getElementById('notebookBatchYieldUnit')?.value.trim() || product.unit || '';
+  product.pantryPackageCount=numberOrNull(document.getElementById('notebookPantryPackageCount')?.value);
+  if(document.getElementById('notebookRefillPrice')) product.pricePerUnit=numberOrNull(document.getElementById('notebookRefillPrice')?.value) ?? 0;
+  if(document.getElementById('notebookPantryPrice')) product.pantryPrice=numberOrNull(document.getElementById('notebookPantryPrice')?.value) ?? 0;
+  if(document.getElementById('notebookPantrySize')) product.pantrySize=document.getElementById('notebookPantrySize')?.value.trim() || 'Not set';
+  if(document.getElementById('variantSize0')){
+    product.pantryVariants=readPantryVariantEditor(product);
+    const defaultVariant=product.pantryVariants[0];
+    if(defaultVariant){
+      product.pantrySize=defaultVariant.size;
+      product.pantryPrice=defaultVariant.price;
+    }
+  }
+  product.refillPricingNotes=document.getElementById('notebookRefillPricingNotes')?.value.trim() || product.refillPricingNotes || '';
+  product.pantryPricingNotes=document.getElementById('notebookPantryPricingNotes')?.value.trim() || product.pantryPricingNotes || '';
   product.packagingPhoto=document.getElementById('notebookPackagingPhoto')?.value.trim() || '';
   product.packagingLinks=document.getElementById('notebookPackagingLinks')?.value.trim() || product.packagingLinks || '';
   product.cogsNotes=document.getElementById('notebookCogsNotes')?.value.trim() || '';
   product.cogsSource=rows.some(row=>ingredientRowCost(row)!==null) ? 'entered' : productCogsSource(product);
+  if(document.getElementById('notebookRefillPrice') || document.getElementById('notebookPantryPrice')){
+    product.pricingSource='entered';
+    product.pricingManuallyConfirmed=true;
+  }
   persistProduct(product);
-  renderNotebook(activeTab);
+  renderNotebook(activeTab==='pricing' || activeTab==='cogs' ? 'costs' : activeTab);
 }
 function saveBatchRecord(){
   const id=document.getElementById('notebookProduct')?.value;
@@ -2695,7 +2742,10 @@ function saveNotebookProduct(activeTab='overview'){
   const updated={...product, pantryCogs:{...(product.pantryCogs || {})}};
   if(document.getElementById('notebookName')) updated.name=readValue('notebookName').trim() || product.name;
   if(document.getElementById('notebookCategory')) updated.category=readValue('notebookCategory').trim() || product.category;
-  if(document.getElementById('notebookStatus')) updated.active=readValue('notebookStatus')==='active';
+  if(document.getElementById('notebookStatus')){
+    updated.status=readValue('notebookStatus') || 'inactive';
+    updated.active=updated.status==='active';
+  }
   if(document.getElementById('notebookUnit')) updated.unit=readValue('notebookUnit') || product.unit;
   if(document.getElementById('notebookRefill')) updated.refill=readChecked('notebookRefill');
   if(document.getElementById('notebookPantry')) updated.pantry=readChecked('notebookPantry');
@@ -2763,6 +2813,7 @@ function saveNewProduct(){
   const pricePerUnit=numberOrNull(document.getElementById('newProductRefillPrice')?.value);
   const pantryPrice=numberOrNull(document.getElementById('newProductPantryPrice')?.value);
   const pantrySize=document.getElementById('newProductPantrySize')?.value.trim() || 'Not set';
+  const status=document.getElementById('newProductStatus')?.value || 'inactive';
   const pantryVariants=pantry ? parsePantryVariantLines(document.getElementById('newProductPantryVariants')?.value, pantrySize, pantryPrice ?? 0) : [];
   const pantryCogs={
     productAmountCost:numberOrNull(document.getElementById('newProductMaterialsCost')?.value),
@@ -2776,7 +2827,8 @@ function saveNewProduct(){
   const product={
     id:slugifyProductName(name),
     ownerCreated:true,
-    active:document.getElementById('newProductStatus')?.value==='active',
+    status,
+    active:status==='active',
     name,
     category,
     refill,
@@ -2831,6 +2883,39 @@ function inventoryStatusBadge(item){
   if(difference<0) return '<span class="source-badge short">Short</span>';
   return '<span class="source-badge over">Over</span>';
 }
+function inventoryMatchText(value){
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+function inventoryItemsForProduct(product){
+  const productName=inventoryMatchText(product.name);
+  return getInventoryItems().filter(item=>{
+    if(item.productId===product.id) return true;
+    const itemName=inventoryMatchText(item.name);
+    return itemName && productName && (itemName.includes(productName) || productName.includes(itemName));
+  });
+}
+function inventorySummaryForProduct(product){
+  const items=inventoryItemsForProduct(product);
+  const planned=items.reduce((sum,item)=>sum+(inventoryAmount(item.plannedQuantity) || 0),0);
+  const actual=items.reduce((sum,item)=>sum+(inventoryAmount(item.quantity) || 0),0);
+  const hasPlan=items.some(item=>inventoryAmount(item.plannedQuantity)!==null);
+  const difference=hasPlan ? actual-planned : null;
+  return {items,planned,actual,hasPlan,difference};
+}
+function productInventoryHTML(product){
+  const summary=inventorySummaryForProduct(product);
+  if(!summary.items.length) return '<span class="small">No linked inventory yet</span>';
+  const status=summary.difference===null
+    ? '<span class="source-badge not-counted">Not planned</span>'
+    : summary.difference<0
+      ? '<span class="source-badge short">Short</span>'
+      : Math.abs(summary.difference)<0.005
+        ? '<span class="source-badge matched">On plan</span>'
+        : '<span class="source-badge over">Over</span>';
+  const difference=summary.difference===null ? 'Not planned' : `${summary.difference>0?'+':''}${inventoryAmountLabel(summary.difference)}`;
+  const units=[...new Set(summary.items.map(item=>item.unit).filter(Boolean))].join(', ') || 'units';
+  return `<strong>${inventoryAmountLabel(summary.actual)} ${escapeHTML(units)}</strong><br><span class="small">Planned ${inventoryAmountLabel(summary.hasPlan?summary.planned:null)} · Difference ${escapeHTML(difference)}</span><br>${status}`;
+}
 
 function saveInventoryItem(){
   const name=document.getElementById('inventoryName')?.value.trim();
@@ -2842,6 +2927,7 @@ function saveInventoryItem(){
   const item={
     id:`inv-${Date.now()}`,
     name,
+    productId:document.getElementById('inventoryProductId')?.value || '',
     category:document.getElementById('inventoryCategory')?.value || 'Raw ingredient',
     plannedQuantity:numberOrNull(document.getElementById('inventoryPlannedQuantity')?.value),
     quantity:numberOrNull(document.getElementById('inventoryActualQuantity')?.value) ?? 0,
@@ -2888,8 +2974,6 @@ function showAdmin(tab='dashboard'){
     <button class="secondary" onclick="showAdmin('sales')">Sales Ledger</button>
     <button class="secondary" onclick="showAdmin('requests')">Pantry Requests</button>
     <button class="secondary" onclick="showAdmin('products')">Products</button>
-    <button class="secondary" onclick="showAdmin('addProduct')">Add Product</button>
-    <button class="secondary" onclick="showAdmin('product')">Product Notebook</button>
     <button class="secondary" onclick="showAdmin('inventory')">Inventory</button>
     <button class="secondary" onclick="showAdmin('marketing')">AI Marketing Studio</button>
     <button class="secondary" onclick="showAdmin('settings')">Settings</button>
@@ -3018,12 +3102,29 @@ function showAdmin(tab='dashboard'){
   }
   if(tab==='products'){
     body=`<section class="card"><h2>Products</h2>
-      <div class="notice">Prices marked Assumed price should be reviewed before relying on them for final margins. Products marked Entered from COGS have owner-entered costing details.</div>
+      <div class="notice">Use this as the quick product command center: status, inventory, refill COGS, Pantry Ready COGS, and selling price. Open a product to edit recipes, COGS, pricing, locations, and notes.</div>
       <div class="spacer"></div>
       <button class="primary" onclick="showAdmin('addProduct')">Add product</button>
       <div class="spacer"></div>
-      <div class="table-wrap"><table><tr><th>Status</th><th>Product</th><th>Category</th><th>Refill</th><th>Pantry Ready</th><th>Refill model</th><th>Pantry model</th><th>Pricing source</th><th>COGS</th></tr>
-      ${products.map(p=>`<tr><td><span class="badge ${isProductActive(p)?'active':'inactive'}">${isProductActive(p)?'Active':'Inactive'}</span></td><td><button class="link-button" type="button" onclick="openProductNotebook('${p.id}')">${p.name}</button></td><td>${p.category}</td><td>${p.refill?money(p.pricePerUnit)+'/'+p.unit:'—'}</td><td>${p.pantry?pantryVariants(p).map(variant=>`${money(variant.price)} · ${variant.size}`).join('<br>'):'—'}</td><td>${p.refill?pricingModelLabel(p.refillPricingModel):'—'}</td><td>${p.pantry?pricingModelLabel(p.pantryPricingModel):'—'}</td><td>${sourceBadge(productPricingSource(p))}</td><td>${sourceBadge(productCogsSource(p))}</td></tr>`).join('')}</table></div></section>`;
+      <div class="table-wrap product-table"><table><tr><th>Product</th><th>Status</th><th>Inventory</th><th>Refill COGS</th><th>Pantry COGS</th><th>Selling price</th><th>Source</th></tr>
+      ${products.map(p=>{
+        const summary=productCogsSummary(p);
+        const refillCogs=summary.refillUnitCost===null ? '<span class="small">Add batch yield</span>' : `${money(summary.refillUnitCost)} / ${escapeHTML(p.batchYieldUnit || p.unit || 'unit')}`;
+        const pantryCogs=summary.pantryPackageCost===null ? '<span class="small">Add package count</span>' : `${money(summary.pantryPackageCost)} / package`;
+        const prices=[
+          p.refill ? `${money(p.pricePerUnit || 0)} / ${escapeHTML(p.unit || 'unit')} refill` : '',
+          p.pantry ? pantryVariants(p).map(variant=>`${money(variant.price)} · ${escapeHTML(variant.size)}`).join('<br>') : ''
+        ].filter(Boolean).join('<br>') || '—';
+        return `<tr>
+          <td><button class="link-button" type="button" onclick="openProductNotebook('${p.id}')">${p.name}</button><br><span class="small">${escapeHTML(p.category)}</span></td>
+          <td>${productStatusBadge(p)}</td>
+          <td>${productInventoryHTML(p)}</td>
+          <td>${refillCogs}</td>
+          <td>${pantryCogs}</td>
+          <td>${prices}</td>
+          <td><span class="small">${sourceBadge(productPricingSource(p))} ${sourceBadge(productCogsSource(p))}</span></td>
+        </tr>`;
+      }).join('')}</table></div></section>`;
   }
   if(tab==='addProduct'){
     body=`<section class="card"><h2>Add Product</h2>
@@ -3032,7 +3133,7 @@ function showAdmin(tab='dashboard'){
       <div class="form-grid">
         <div><label>Product name</label><input id="newProductName" placeholder="Example: Foaming Hand Soap"></div>
         <div><label>Department / category</label><input id="newProductCategory" placeholder="Laundry, Kitchen, Home, Eloah..."></div>
-        <div><label>Status</label><select id="newProductStatus"><option value="inactive">Inactive for now</option><option value="active">Active / customer visible</option></select></div>
+        <div><label>Status</label><select id="newProductStatus">${productStatusOptions.map(option=>`<option value="${option.value}" ${option.value==='inactive'?'selected':''}>${option.label}</option>`).join('')}</select></div>
         <div><label>Unit</label><select id="newProductUnit"><option value="oz">ounces</option><option value="g">grams</option><option value="each">each</option><option value="jar">jar</option><option value="bottle">bottle</option><option value="bar">bar</option><option value="set">set</option></select></div>
         <div class="summary">
           <strong>Customer formats</strong>
@@ -3077,6 +3178,7 @@ function showAdmin(tab='dashboard'){
         <div class="form-grid">
           <div class="grid grid-3">
             <div><label>Item name</label><input id="inventoryName" placeholder="Example: Baking soda, 8 oz amber bottle, Tallow Lotion 2 oz"></div>
+            <div><label>Linked product</label><select id="inventoryProductId"><option value="">Not product-specific</option>${products.map(product=>`<option value="${product.id}">${product.name}</option>`).join('')}</select></div>
             <div><label>Category</label><select id="inventoryCategory"><option>Raw ingredient</option><option>Packaging</option><option>Label</option><option>Finished Pantry Ready</option><option>Refill bulk</option><option>Glass</option><option>Market stock</option><option>Trunk box</option><option>Other</option></select></div>
             <div><label>Location</label><input id="inventoryLocation" placeholder="Common Good, trunk box, market tote..."></div>
             <div><label>Planned amount</label><input id="inventoryPlannedQuantity" type="number" step=".01" placeholder="Target count or amount"></div>
@@ -3094,12 +3196,13 @@ function showAdmin(tab='dashboard'){
         </div>
       </details>
       <div class="spacer"></div>
-      ${items.length?`<div class="table-wrap"><table><tr><th>Item</th><th>Category</th><th>Planned</th><th>Actual</th><th>Unit</th><th>Difference</th><th>Status</th><th>Reorder</th><th>Location</th><th>Supplier</th><th>Notes</th><th></th></tr>
+      ${items.length?`<div class="table-wrap"><table><tr><th>Item</th><th>Product</th><th>Category</th><th>Planned</th><th>Actual</th><th>Unit</th><th>Difference</th><th>Status</th><th>Reorder</th><th>Location</th><th>Supplier</th><th>Notes</th><th></th></tr>
         ${items.map((item,index)=>{
           const difference=inventoryDifference(item);
           const differenceLabel=difference===null?'Not planned':`${difference>0?'+':''}${inventoryAmountLabel(difference)}`;
           return `<tr>
           <td><input id="inventoryname${index}" value="${escapeHTML(item.name || '')}" onchange="updateInventoryItem(${index},'name')"></td>
+          <td><select id="inventoryproductId${index}" onchange="updateInventoryItem(${index},'productId')"><option value="">Not linked</option>${products.map(product=>`<option value="${product.id}" ${item.productId===product.id?'selected':''}>${product.name}</option>`).join('')}</select></td>
           <td><select id="inventorycategory${index}" onchange="updateInventoryItem(${index},'category')">${['Raw ingredient','Packaging','Label','Finished Pantry Ready','Refill bulk','Glass','Market stock','Trunk box','Other'].map(category=>`<option ${item.category===category?'selected':''}>${category}</option>`).join('')}</select></td>
           <td><input id="inventoryplannedQuantity${index}" type="number" step=".01" value="${item.plannedQuantity ?? ''}" onchange="updateInventoryItem(${index},'plannedQuantity')"></td>
           <td><input id="inventoryquantity${index}" type="number" step=".01" value="${item.quantity ?? ''}" onchange="updateInventoryItem(${index},'quantity')"></td>
@@ -3219,30 +3322,30 @@ function showAdmin(tab='dashboard'){
 }
 
 function notebookTabs(active='overview'){
+  if(active==='cogs' || active==='pricing') active='costs';
   const tabs=[
     ['overview','Overview'],
     ['recipe','Recipe'],
-    ['cogs','COGS'],
-    ['pricing','Pricing'],
-    ['packaging','Packaging'],
-    ['labels','Labels'],
+    ['costs','Cost & Pricing'],
+    ['packaging','Packaging & Labels'],
     ['marketing','Marketing']
   ];
   return `<div class="tabs notebook-tabs">${tabs.map(([id,label])=>`<button class="${active===id?'primary':'quiet'}" onclick="renderNotebook('${id}')">${label}</button>`).join('')}</div>`;
 }
 function renderNotebook(activeTab='overview'){
+  if(activeTab==='cogs' || activeTab==='pricing') activeTab='costs';
   const id=document.getElementById('notebookProduct').value;
   const p=products.find(x=>x.id===id);
   if(!p) return;
   const cogs=p.pantryCogs || {};
   const cogsSummary=productCogsSummary(p);
-  const statusBadge=`<span class="badge ${isProductActive(p)?'active':'inactive'}">${isProductActive(p)?'Active':'Inactive'}</span>`;
+  const statusBadge=productStatusBadge(p);
   const sections={
     overview:`<div class="form-grid">
       <div class="grid grid-3">
         <div><label>Product name</label><input id="notebookName" value="${escapeHTML(p.name)}"></div>
         <div><label>Department / category</label><input id="notebookCategory" value="${escapeHTML(p.category)}"></div>
-        <div><label>Status</label><select id="notebookStatus"><option value="active" ${isProductActive(p)?'selected':''}>Active / customer visible</option><option value="inactive" ${!isProductActive(p)?'selected':''}>Inactive for now</option></select></div>
+        <div><label>Status</label><select id="notebookStatus">${productStatusOptions.map(option=>`<option value="${option.value}" ${productStatus(p)===option.value?'selected':''}>${option.label}</option>`).join('')}</select></div>
         <div><label>Unit</label><select id="notebookUnit">${['oz','g','each','jar','bottle','bar','set'].map(unit=>`<option value="${unit}" ${p.unit===unit?'selected':''}>${unit}</option>`).join('')}</select></div>
         <div class="summary">
           <strong>Customer formats</strong>
@@ -3251,6 +3354,7 @@ function renderNotebook(activeTab='overview'){
         </div>
         <div class="summary"><strong>Current status</strong><br>${statusBadge}<p>${sourceBadge(productPricingSource(p))} ${sourceBadge(productCogsSource(p))}</p></div>
       </div>
+      <div class="summary"><strong>Inventory at a glance</strong><p>${productInventoryHTML(p)}</p><p class="small">Inventory can be linked from the Inventory tab by choosing this product.</p></div>
       <div><label>Locations offered</label><textarea id="notebookLocations" placeholder="Common Good, markets, trunk box, future locations...">${escapeHTML(p.locations || '')}</textarea></div>
       <div><label>Owner notes</label><textarea id="notebookOwnerNotes" placeholder="Anything else to remember before launch">${escapeHTML(p.ownerNotes || '')}</textarea></div>
       <button class="primary" type="button" onclick="saveNotebookProduct('overview')">Save overview</button>
@@ -3260,7 +3364,7 @@ function renderNotebook(activeTab='overview'){
       <div><label>Batch notes</label><textarea id="notebookBatchNotes" placeholder="Production runs, batch dates, lot numbers, quality notes">${escapeHTML(p.batchNotes || '')}</textarea></div>
       <button class="primary" type="button" onclick="saveNotebookProduct('recipe')">Save recipe</button>
     </div>`,
-    cogs:`<div class="form-grid">
+    costs:`<div class="form-grid">
       <div class="notice">Recipe lines come from the Recipe tab. For each ingredient, enter what the recipe uses, what the full container costs, and how much comes in that container.</div>
       <section>
         <h3>Recipe line items</h3>
@@ -3272,10 +3376,13 @@ function renderNotebook(activeTab='overview'){
           <div><label>Time to produce (minutes)</label><input id="notebookLaborMinutes" type="number" min="0" step="1" value="${p.laborMinutes ?? ''}" placeholder="45"></div>
           <div><label>Hourly labor rate</label><input id="notebookHourlyLaborRate" type="number" min="0" step=".01" value="${p.hourlyLaborRate ?? defaultHourlyLaborRate.toFixed(2)}" placeholder="30.00"></div>
           <div class="summary"><strong>Calculated labor cost</strong><div class="price">${money(cogsSummary.labor)}</div><p class="small">Time to produce × hourly labor rate.</p></div>
-        <div><label>Packaging cost</label><input id="notebookPackagingCost" type="number" min="0" step=".01" value="${cogs.packagingCost ?? ''}" placeholder="0.00"></div>
-        <div><label>Label cost</label><input id="notebookLabelCost" type="number" min="0" step=".01" value="${cogs.labelCost ?? ''}" placeholder="0.00"></div>
-        <div><label>Waste buffer</label><input id="notebookWasteBuffer" type="number" min="0" step=".01" value="${cogs.wasteBuffer ?? ''}" placeholder="0.00"></div>
-        <div><label>Target margin</label><input id="notebookTargetMargin" type="number" min="0" step=".01" value="${cogs.targetMargin ?? ''}" placeholder="Example: 0.55"></div>
+          <div><label>Batch yield amount</label><input id="notebookBatchYieldAmount" type="number" min="0" step=".01" value="${p.batchYieldAmount ?? ''}" placeholder="Example: 128"></div>
+          <div><label>Batch yield unit</label><input id="notebookBatchYieldUnit" value="${escapeHTML(p.batchYieldUnit || p.unit || 'oz')}" placeholder="oz, g, each"></div>
+          <div><label>Pantry Ready packages made</label><input id="notebookPantryPackageCount" type="number" min="0" step="1" value="${p.pantryPackageCount ?? ''}" placeholder="Example: 8"></div>
+          <div><label>Packaging cost per package</label><input id="notebookPackagingCost" type="number" min="0" step=".01" value="${cogs.packagingCost ?? ''}" placeholder="0.00"></div>
+          <div><label>Label cost per package</label><input id="notebookLabelCost" type="number" min="0" step=".01" value="${cogs.labelCost ?? ''}" placeholder="0.00"></div>
+          <div><label>Waste buffer for batch</label><input id="notebookWasteBuffer" type="number" min="0" step=".01" value="${cogs.wasteBuffer ?? ''}" placeholder="0.00"></div>
+          <div><label>Target margin</label><input id="notebookTargetMargin" type="number" min="0" step=".01" value="${cogs.targetMargin ?? ''}" placeholder="Example: 0.55"></div>
         </div>
         <div class="grid grid-2">
           <div><label>Packaging photo link</label><input id="notebookPackagingPhoto" value="${escapeHTML(p.packagingPhoto || '')}" placeholder="Optional image URL or file note"></div>
@@ -3284,14 +3391,30 @@ function renderNotebook(activeTab='overview'){
       </section>
       <section class="grid grid-3">
         <div class="summary"><strong>Ingredient total</strong><div class="price">${money(cogsSummary.ingredientTotal)}</div></div>
-        <div class="summary"><strong>Bulk restock basis</strong><div class="price">${money(cogsSummary.bulkTotal)}</div><p class="small">Ingredients + waste buffer</p></div>
-        <div class="summary"><strong>Pantry Ready basis</strong><div class="price">${money(cogsSummary.pantryTotal)}</div><p class="small">Bulk + packaging + label + labor</p></div>
+        <div class="summary"><strong>Refill COGS per ${escapeHTML(p.batchYieldUnit || p.unit || 'unit')}</strong><div class="price">${cogsSummary.refillUnitCost===null?'—':money(cogsSummary.refillUnitCost)}</div><p class="small">Batch ingredients + waste divided by batch yield.</p></div>
+        <div class="summary"><strong>Pantry COGS per package</strong><div class="price">${cogsSummary.pantryPackageCost===null?'—':money(cogsSummary.pantryPackageCost)}</div><p class="small">Product share + packaging + label + labor share.</p></div>
         <div class="summary"><strong>Suggested Pantry price</strong><div class="price">${cogsSummary.suggestedPantryPrice===null?'—':money(cogsSummary.suggestedPantryPrice)}</div><p class="small">Based on target margin when entered.</p></div>
       </div>
-      <div><label>COGS notes</label><textarea id="notebookCogsNotes" placeholder="Ingredient costs, packaging, labels, labor, waste, merchant fees">${escapeHTML(p.cogsNotes || '')}</textarea></div>
+      <section class="summary">
+        <h3>Selling prices</h3>
+        <div class="grid grid-3">
+          <div><label>Refill price per unit</label><input id="notebookRefillPrice" type="number" min="0" step=".01" value="${p.pricePerUnit ?? ''}" placeholder="0.00"></div>
+          <div><label>Pantry Ready price</label><input id="notebookPantryPrice" type="number" min="0" step=".01" value="${p.pantryPrice ?? ''}" placeholder="0.00"></div>
+          <div><label>Pantry Ready size</label><input id="notebookPantrySize" value="${escapeHTML(p.pantrySize || '')}" placeholder="16 oz bottle, 2 lb pouch..."></div>
+        </div>
+        <details>
+          <summary>Pantry Ready size variants</summary>
+          <p class="small">Use this when one product has multiple packaged sizes, such as 1 oz jar and 2 oz jar.</p>
+          <div class="request-list">${renderPantryVariantEditor(p)}</div>
+        </details>
+        <div class="grid grid-2">
+          <div><label>Refill pricing notes</label><textarea id="notebookRefillPricingNotes" placeholder="Product-only refill COGS, target margin, refill price per ounce or gram">${escapeHTML(p.refillPricingNotes || '')}</textarea></div>
+          <div><label>Pantry Ready pricing notes</label><textarea id="notebookPantryPricingNotes" placeholder="${pantryCogsFormula()}">${escapeHTML(p.pantryPricingNotes || '')}</textarea></div>
+        </div>
+      </section>
+      <div><label>Cost notes</label><textarea id="notebookCogsNotes" placeholder="Ingredient costs, packaging, labels, labor, waste, merchant fees">${escapeHTML(p.cogsNotes || '')}</textarea></div>
       <div class="button-row">
-        <button class="primary" type="button" onclick="saveNotebookCogsCalculator('cogs')">Save COGS calculator</button>
-        <button class="secondary" type="button" onclick="saveNotebookCogsCalculator('pricing')">Save and review pricing</button>
+        <button class="primary" type="button" onclick="saveNotebookCogsCalculator('costs')">Save cost & pricing</button>
       </div>
       <section class="summary">
         <h3>Batch record</h3>
@@ -3308,8 +3431,8 @@ function renderNotebook(activeTab='overview'){
     </div>`,
     pricing:`<div class="form-grid">
       <div class="grid grid-3">
-        <div class="summary"><strong>Bulk restock basis</strong><div class="price">${money(cogsSummary.bulkTotal)}</div><p class="small">Ingredient cost + waste buffer. Use this for refill pricing decisions.</p></div>
-        <div class="summary"><strong>Pantry Ready basis</strong><div class="price">${money(cogsSummary.pantryTotal)}</div><p class="small">Bulk basis + packaging + label + labor.</p></div>
+        <div class="summary"><strong>Refill COGS per ${escapeHTML(p.batchYieldUnit || p.unit || 'unit')}</strong><div class="price">${cogsSummary.refillUnitCost===null?'—':money(cogsSummary.refillUnitCost)}</div><p class="small">Use this when pricing refill by ounce, gram, or unit.</p></div>
+        <div class="summary"><strong>Pantry COGS per package</strong><div class="price">${cogsSummary.pantryPackageCost===null?'—':money(cogsSummary.pantryPackageCost)}</div><p class="small">Use this when pricing one Pantry Ready jar, pouch, bottle, bar, or set.</p></div>
         <div class="summary"><strong>Suggested Pantry price</strong><div class="price">${cogsSummary.suggestedPantryPrice===null?'—':money(cogsSummary.suggestedPantryPrice)}</div><p class="small">Appears when target margin is entered.</p></div>
       </div>
       <div class="grid grid-3">
@@ -3332,7 +3455,13 @@ function renderNotebook(activeTab='overview'){
       <div><label>Packaging photo link</label><input id="notebookPackagingPhoto" value="${escapeHTML(p.packagingPhoto || '')}" placeholder="Optional image URL or file note"></div>
       <div><label>Packaging links</label><textarea id="notebookPackagingLinks" placeholder="Supplier, SKU, purchase URL, MOQ, lead time">${escapeHTML(p.packagingLinks || '')}</textarea></div>
       <div><label>Inventory split</label><textarea id="notebookInventorySplit" placeholder="How much batch stays bulk refill, how much becomes Pantry Ready, trunk box minimums, market quantities">${escapeHTML(p.inventorySplit || '')}</textarea></div>
-      <button class="primary" type="button" onclick="saveNotebookProduct('packaging')">Save packaging</button>
+      <div class="summary">
+        <strong>Approved labels and photos</strong>
+        <input type="file" multiple>
+        <p class="small">Marketing image prompts should reference approved Workroom assets instead of asking AI to invent label text.</p>
+      </div>
+      <div><label>Label notes</label><textarea id="notebookLabelNotes" placeholder="Label size, paper, scent variant, ingredients, warnings, batch/date placement">${escapeHTML(p.labelNotes || '')}</textarea></div>
+      <button class="primary" type="button" onclick="saveNotebookProduct('packaging')">Save packaging & labels</button>
     </div>`,
     labels:`<div class="form-grid">
       <div><label>Approved labels and photos</label><input type="file" multiple><p class="small">Marketing image prompts should reference these approved Workroom assets instead of asking AI to invent label text.</p></div>

@@ -612,9 +612,21 @@ th { background: var(--soft); }
   background: #edf3e9;
   color: var(--success);
 }
-.badge.inactive {
+.badge.inactive,
+.badge.future {
   background: var(--cream);
   color: #6d624f;
+}
+.badge.testing {
+  background: #fff1d6;
+  color: #7a5a12;
+}
+.badge.discontinued {
+  background: #f7e6e2;
+  color: var(--danger);
+}
+.product-table table {
+  min-width: 1040px;
 }
 .bottom-nav {
   position: fixed;

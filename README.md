@@ -18,7 +18,7 @@ For the owner area, use the owner password:
 - Cash, check, and Venmo instruction screens
 - Saved customer containers
 - Owner dashboard
-- Product notebook with COGS, recipes, pricing, packaging, labels, marketing notes, and batch records
+- Product notebook with recipes, combined cost/pricing, packaging/labels, marketing notes, and batch records
 - Inventory planning area
 - AI Marketing Studio and post bank
 - Pantry Ready request log with owner text follow-up links
