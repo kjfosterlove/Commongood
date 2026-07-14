@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#6C5C2C" />
+  <title>Common Good Workroom</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">COMMON GOOD</div>
+      <h1 id="pageTitle">Refill Station</h1>
+    </div>
+    <button class="cart-button" onclick="showCart()">Cart <span id="cartCount">0</span></button>
+  </header>
+
+  <main id="app"></main>
+
+  <nav class="bottom-nav">
+    <button onclick="showHome()">Shop</button>
+    <button onclick="showCart()">Cart</button>
+    <button onclick="showAccount()">My Containers</button>
+    <button onclick="showLogin()">Owner</button>
+  </nav>
+
+<script src="app.js"></script>
+</body>
+</html>

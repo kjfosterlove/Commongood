@@ -1,0 +1,9 @@
+{
+  "name": "Common Good Refill Station",
+  "short_name": "Common Good",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fffaf0",
+  "theme_color": "#6C5C2C",
+  "icons": []
+}
