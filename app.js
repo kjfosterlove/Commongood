@@ -20,10 +20,13 @@ applyProductOverrides();
 restoreAssumedPricingSources();
 
 const glass = [
-  {id:'g1', name:'Vintage Clear Canister', price:14, tare:18.4, imageUrl:'', imageAlt:'Vintage clear glass canister'},
-  {id:'g2', name:'Amber Pump Bottle', price:10, tare:9.2, imageUrl:'', imageAlt:'Amber glass pump bottle'},
-  {id:'g3', name:'Wide Mouth Mason Jar', price:6, tare:12.8, imageUrl:'', imageAlt:'Wide mouth mason jar'},
-  {id:'g4', name:'One-of-a-Kind Estate Jar', price:18, tare:21.1, imageUrl:'', imageAlt:'One-of-a-kind estate jar'}
+  {id:'g1', name:'Vintage Clear Canister', category:'Jar / container', price:14, tare:18.4, imageUrl:'', imageAlt:'Vintage clear glass canister'},
+  {id:'g2', name:'Amber Pump Bottle', category:'Bottle', price:10, tare:9.2, imageUrl:'', imageAlt:'Amber glass pump bottle'},
+  {id:'g3', name:'Wide Mouth Mason Jar', category:'Basic jar', price:6, tare:12.8, imageUrl:'', imageAlt:'Wide mouth mason jar'},
+  {id:'g4', name:'One-of-a-Kind Estate Jar', category:'One-of-a-kind glass', price:18, tare:21.1, imageUrl:'', imageAlt:'One-of-a-kind estate jar'},
+  {id:'a1', name:'Dish Brush', category:'Accessory', price:9, tare:null, imageUrl:'', imageAlt:'Dish brush'},
+  {id:'a2', name:'Loofah', category:'Accessory', price:5, tare:null, imageUrl:'', imageAlt:'Loofah'},
+  {id:'a3', name:'Wool Dryer Balls', category:'Accessory', price:18, tare:null, imageUrl:'', imageAlt:'Wool dryer balls'}
 ];
 
 let cart = JSON.parse(localStorage.getItem('cg_cart') || '[]');
@@ -52,6 +55,20 @@ const productStatusOptions=[
   {value:'inactive',label:'Inactive for now'},
   {value:'discontinued',label:'Discontinued'}
 ];
+const inventoryCategories=[
+  'Raw ingredient',
+  'Packaging',
+  'Label',
+  'Finished Pantry Ready',
+  'Refill stock',
+  'Basic jar',
+  'One-of-a-kind glass',
+  'Accessory',
+  'Trunk box',
+  'Market stock',
+  'Other'
+];
+const sellableExtraCategories=['Basic jar','One-of-a-kind glass','Accessory'];
 function productStatus(p){
   if(p.status) return p.status;
   return p.active === false ? 'inactive' : 'active';
@@ -170,7 +187,30 @@ function glassPhoto(g){
     ? `<img class="glass-photo" src="${g.imageUrl}" alt="${g.imageAlt || g.name}">`
     : `<div class="glass-photo glass-photo-empty" aria-hidden="true"></div>`;
 }
-function glassMeta(g){ return `Tare ${g.tare} oz · ${money(g.price)} ${sourceBadge('assumed')}`; }
+function glassMeta(g){
+  const parts=[g.category || 'Extra'];
+  if(g.tare!==null && g.tare!==undefined && g.tare!=='') parts.push(`Tare ${g.tare} oz`);
+  parts.push(money(g.price || 0));
+  if(g.stickerId) parts.push(g.stickerId);
+  const badge=g.inventoryId ? '<span class="source-badge matched">Inventory</span>' : sourceBadge('assumed');
+  return `${parts.join(' · ')} ${badge}`;
+}
+function commonGoodExtras(){
+  const inventoryExtras=getInventoryItems()
+    .filter(item=>sellableExtraCategories.includes(item.category) && (inventoryAmount(item.quantity) ?? 0)>0)
+    .map(item=>({
+      id:`inv-${item.id}`,
+      inventoryId:item.id,
+      name:item.name,
+      category:item.category,
+      price:Number(item.price) || 0,
+      tare:item.tare,
+      imageUrl:item.photo || '',
+      imageAlt:item.name,
+      stickerId:item.stickerId || item.id
+    }));
+  return [...inventoryExtras, ...glass];
+}
 function getSales(){ return JSON.parse(localStorage.getItem('cg_sales')||'[]'); }
 function saveSales(sales){ localStorage.setItem('cg_sales',JSON.stringify(sales)); }
 function getInventoryItems(){ return JSON.parse(localStorage.getItem('cg_inventory_items')||'[]'); }
@@ -1948,8 +1988,8 @@ function showHome(){
         <button class="primary full" onclick="showPantry()">Shop Pantry Ready</button>
       </article>
       <article class="card action-card">
-        <div><div class="path-label">Containers</div><h3>Glass Collection</h3><p>Shop vintage jars, bottles, canisters, and useful glass containers.</p></div>
-        <button class="primary full" onclick="showGlass()">Browse glass</button>
+        <div><div class="path-label">Jars and accessories</div><h3>Common Good Extras</h3><p>Shop jars, bottles, brushes, loofahs, wool dryer balls, and other useful goods.</p></div>
+        <button class="primary full" onclick="showGlass()">Browse extras</button>
       </article>
       <article class="card action-card">
         <div><div class="path-label">Pantry Ready delivery</div><h3>Request Pantry Ready</h3><p>Tell us what you want packed for delivery, porch drop-off, or market pickup.</p></div>
@@ -2114,8 +2154,8 @@ function showContainerStep(){
         </button>
         <button class="choice-card" onclick="showSavedContainerStep()">
           <span>
-            <strong>Saved container</strong>
-            <small>Use a container you saved before.</small>
+            <strong>Saved jar</strong>
+            <small>Use a tare weight you saved before.</small>
           </span>
         </button>
       </div>
@@ -2126,12 +2166,13 @@ function showContainerStep(){
 
 function showCommonGlassStep(){
   const p = products.find(x=>x.id===window.currentRefill.productId);
+  const refillGlass=commonGoodExtras().filter(item=>item.tare!==null && item.tare!==undefined && item.tare!=='' && ['Basic jar','One-of-a-kind glass','Jar / container','Bottle'].includes(item.category));
   setTitle(p.name);
   app(`
     <section class="card">
       ${stepHeader(1,'Choose Common Good glass','Pick the container being used for this refill.')}
       <div class="choice-list">
-        ${glass.map(g=>`<button class="choice-card glass-choice" onclick="selectContainer('common','${g.id}')">
+        ${refillGlass.map(g=>`<button class="choice-card glass-choice" onclick="selectContainer('common','${g.id}')">
           ${glassPhoto(g)}
           <span class="glass-choice-copy">
             <strong>${g.name}</strong>
@@ -2150,7 +2191,7 @@ function showSavedContainerStep(){
   if(!savedContainers.length){
     app(`
       <section class="card">
-        ${stepHeader(1,'Saved containers','No saved containers are on this device yet.')}
+        ${stepHeader(1,'Saved jars','No saved jars are on this device yet.')}
         <div class="notice">Use your own container this time. After adding the refill to your cart, you can save it for next time.</div>
         <div class="button-row">
           <button class="primary" onclick="selectContainer('own')">Use my own container</button>
@@ -2179,7 +2220,7 @@ function showSavedContainerStep(){
 function selectContainer(type, value){
   let container=null, tare=null;
   if(type==='common'){
-    container=glass.find(g=>g.id===value);
+    container=commonGoodExtras().find(g=>g.id===value);
     tare=container.tare;
   }
   if(type==='saved'){
@@ -2310,9 +2351,10 @@ function addPantry(id, variantId='default'){
 }
 
 function showGlass(){
-  setTitle('Glass Collection');
-  app(`<div class="notice">Common Good-supplied refill containers are glass only. Customers may bring their own clean containers of any suitable material. Photos are optional for glass inventory; prices and tare weights should be verified before they are used for checkout.</div><div class="spacer"></div>
-  <div class="product-list">${glass.map(g=>`
+  setTitle('Common Good Extras');
+  const extras=commonGoodExtras();
+  app(`<div class="notice">Common Good Extras includes jars, bottles, brushes, loofahs, wool dryer balls, miswak toothbrushes, and other useful goods. Common Good-supplied refill containers are glass only; customers may still bring their own clean containers of any suitable material.</div><div class="spacer"></div>
+  <div class="product-list">${extras.map(g=>`
     <div class="product-row glass-row">
       ${glassPhoto(g)}
       <div class="glass-row-copy"><strong>${g.name}</strong><div class="product-meta">${glassMeta(g)}</div></div>
@@ -2320,8 +2362,10 @@ function showGlass(){
     </div>`).join('')}</div>`);
 }
 function addGlass(id){
-  const g=glass.find(x=>x.id===id);
-  cart.push({type:'glass',name:g.name,detail:`tare ${g.tare} oz`,price:g.price});
+  const g=commonGoodExtras().find(x=>x.id===id);
+  if(!g) return;
+  const detail=[g.category || 'Extra', g.tare!==null && g.tare!==undefined && g.tare!=='' ? `tare ${g.tare} oz` : '', g.stickerId || ''].filter(Boolean).join(' · ');
+  cart.push({type:'extra',name:g.name,detail,price:g.price || 0,inventoryId:g.inventoryId || null});
   save(); showGlass();
 }
 
@@ -2399,9 +2443,11 @@ function finishSale(method){
 }
 
 function showAccount(){
-  setTitle('My Containers');
-  app(`<section class="card"><h2>Saved containers</h2>
-    ${savedContainers.length?savedContainers.map((c,i)=>`<div class="line-item"><div><strong>${c.name}</strong><div class="small">Tare ${c.tare} oz</div></div><div></div><button class="quiet" onclick="deleteContainer(${i})">Remove</button></div>`).join(''):`<p>No containers saved yet. You can save one after completing a refill with your own container.</p>`}
+  setTitle('My Jars');
+  app(`<section class="card"><h2>Saved jars</h2>
+    <div class="notice">Saved jars live on this device. Clearing cookies or browser storage can erase them, so be prepared to tare them again if needed.</div>
+    <div class="spacer"></div>
+    ${savedContainers.length?savedContainers.map((c,i)=>`<div class="line-item"><div><strong>${c.name}</strong><div class="small">Tare ${c.tare} oz</div></div><div></div><button class="quiet" onclick="deleteContainer(${i})">Remove</button></div>`).join(''):`<p>No jars saved yet. You can save one after completing a refill with your own container.</p>`}
   </section>`);
 }
 function deleteContainer(i){savedContainers.splice(i,1);localStorage.setItem('cg_containers',JSON.stringify(savedContainers));showAccount();}
@@ -2929,6 +2975,7 @@ function saveInventoryItem(){
     name,
     productId:document.getElementById('inventoryProductId')?.value || '',
     category:document.getElementById('inventoryCategory')?.value || 'Raw ingredient',
+    subcategory:document.getElementById('inventorySubcategory')?.value.trim() || '',
     plannedQuantity:numberOrNull(document.getElementById('inventoryPlannedQuantity')?.value),
     quantity:numberOrNull(document.getElementById('inventoryActualQuantity')?.value) ?? 0,
     unit:document.getElementById('inventoryUnit')?.value.trim() || '',
@@ -2936,6 +2983,11 @@ function saveInventoryItem(){
     location:document.getElementById('inventoryLocation')?.value.trim() || '',
     supplier:document.getElementById('inventorySupplier')?.value.trim() || '',
     link:document.getElementById('inventoryLink')?.value.trim() || '',
+    price:numberOrNull(document.getElementById('inventoryPrice')?.value),
+    tare:numberOrNull(document.getElementById('inventoryTare')?.value),
+    stickerId:document.getElementById('inventoryStickerId')?.value.trim() || '',
+    lidStatus:document.getElementById('inventoryLidStatus')?.value || '',
+    photo:document.getElementById('inventoryPhotoData')?.value || '',
     notes:document.getElementById('inventoryNotes')?.value.trim() || '',
     updatedAt:new Date().toISOString()
   };
@@ -2950,11 +3002,88 @@ function updateInventoryItem(index, field){
   if(!items[index]) return;
   const input=document.getElementById(`inventory${field}${index}`);
   if(!input) return;
-  const numeric=['plannedQuantity','quantity','reorderPoint'].includes(field);
+  const numeric=['plannedQuantity','quantity','reorderPoint','price','tare'].includes(field);
   items[index][field]=numeric ? numberOrNull(input.value) : input.value.trim();
   items[index].updatedAt=new Date().toISOString();
   saveInventoryItems(items);
   if(['plannedQuantity','quantity'].includes(field)) showAdmin('inventory');
+}
+
+function handleInventoryPhotoInput(input){
+  const file=input?.files?.[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const data=document.getElementById('inventoryPhotoData');
+    const preview=document.getElementById('inventoryPhotoPreview');
+    if(data) data.value=reader.result;
+    if(preview) preview.innerHTML=`<img class="glass-photo" src="${reader.result}" alt="Inventory photo preview">`;
+  };
+  reader.readAsDataURL(file);
+}
+function saveSourcedJar(){
+  const name=document.getElementById('jarProcessName')?.value.trim() || `Sourced jar ${new Date().toLocaleDateString()}`;
+  const stickerId=document.getElementById('jarProcessStickerId')?.value.trim() || `JAR-${Date.now().toString().slice(-6)}`;
+  const item={
+    id:`jar-${Date.now()}`,
+    name,
+    productId:'',
+    category:document.getElementById('jarProcessCategory')?.value || 'One-of-a-kind glass',
+    subcategory:document.getElementById('jarProcessSubcategory')?.value.trim() || '',
+    plannedQuantity:1,
+    quantity:1,
+    unit:'each',
+    reorderPoint:null,
+    location:document.getElementById('jarProcessLocation')?.value.trim() || 'Processing',
+    supplier:document.getElementById('jarProcessSource')?.value.trim() || '',
+    link:'',
+    price:numberOrNull(document.getElementById('jarProcessPrice')?.value),
+    tare:numberOrNull(document.getElementById('jarProcessTare')?.value),
+    stickerId,
+    lidStatus:document.getElementById('jarProcessLidStatus')?.value || '',
+    photo:document.getElementById('jarProcessPhotoData')?.value || '',
+    notes:document.getElementById('jarProcessNotes')?.value.trim() || '',
+    updatedAt:new Date().toISOString()
+  };
+  const items=getInventoryItems();
+  items.unshift(item);
+  saveInventoryItems(items);
+  showAdmin('inventory');
+  setTimeout(()=>printInventorySticker(0),50);
+}
+function handleJarProcessPhoto(input){
+  const file=input?.files?.[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const data=document.getElementById('jarProcessPhotoData');
+    const preview=document.getElementById('jarProcessPhotoPreview');
+    if(data) data.value=reader.result;
+    if(preview) preview.innerHTML=`<img class="glass-photo" src="${reader.result}" alt="Jar photo preview">`;
+  };
+  reader.readAsDataURL(file);
+}
+function printInventorySticker(index){
+  const item=getInventoryItems()[index];
+  if(!item) return;
+  const stickerId=item.stickerId || item.id || `INV-${index+1}`;
+  const w=window.open('','_blank','width=420,height=520');
+  if(!w) return;
+  w.document.write(`<!doctype html><html><head><title>${escapeHTML(stickerId)}</title><style>
+    body{font-family:Arial,sans-serif;padding:20px;color:#221d14}
+    .label{border:2px solid #6c5c2c;border-radius:8px;padding:18px;width:260px}
+    h1{font-size:22px;margin:0 0 8px}
+    p{margin:5px 0;font-size:14px}
+    .code{font-size:18px;font-weight:800;letter-spacing:.08em}
+  </style></head><body><div class="label">
+    <div class="code">${escapeHTML(stickerId)}</div>
+    <h1>${escapeHTML(item.name || 'Inventory item')}</h1>
+    <p>${escapeHTML(item.category || '')}</p>
+    <p>Tare: ${item.tare!==null && item.tare!==undefined ? `${escapeHTML(inventoryAmountLabel(item.tare))} oz` : 'Not set'}</p>
+    <p>Price: ${item.price!==null && item.price!==undefined ? money(item.price) : 'Not set'}</p>
+    <p>${escapeHTML(item.lidStatus || '')}</p>
+  </div><script>window.print();</script></body></html>`);
+  w.document.close();
 }
 
 function deleteInventoryItem(index){
@@ -3017,6 +3146,84 @@ function dashboardInventoryAlertRows(items){
       <span class="source-badge short">${escapeHTML(alertText)}</span>
     </article>`;
   }).join('');
+}
+function saleMatchesReportFilters(sale){
+  const start=document.getElementById('reportStart')?.value;
+  const end=document.getElementById('reportEnd')?.value;
+  const product=document.getElementById('reportProduct')?.value || 'all';
+  const location=document.getElementById('reportLocation')?.value.trim().toLowerCase() || '';
+  const method=document.getElementById('reportMethod')?.value || 'all';
+  const format=document.getElementById('reportFormat')?.value || 'all';
+  const variance=document.getElementById('reportVariance')?.value || 'all';
+  const donation=document.getElementById('reportDonation')?.checked || false;
+  const date=sale.date ? sale.date.slice(0,10) : '';
+  if(start && date<start) return false;
+  if(end && date>end) return false;
+  const items=sale.items || [];
+  if(product!=='all' && !items.some(item=>item.productId===product || item.name===product)) return false;
+  if(location && !String(sale.location || sale.locationName || sale.note || '').toLowerCase().includes(location)) return false;
+  if(method!=='all' && !String(sale.method || '').toLowerCase().includes(method.toLowerCase())) return false;
+  if(format==='pantry' && !items.some(item=>item.type==='pantry')) return false;
+  if(format==='refill' && !items.some(item=>item.type==='refill')) return false;
+  if(format==='extras' && !items.some(item=>['glass','extra'].includes(item.type))) return false;
+  const saleVar=saleVariance(sale);
+  if(variance==='short' && !(saleVar!==null && saleVar<0)) return false;
+  if(variance==='over' && !(saleVar!==null && saleVar>0)) return false;
+  if(variance==='not-counted' && saleEnteredAmount(sale)!==null) return false;
+  if(variance==='matched' && !(saleVar!==null && Math.abs(saleVar)<0.005)) return false;
+  if(donation && !String(`${sale.note || ''} ${(items||[]).map(item=>`${item.name} ${item.detail}`).join(' ')}`).toLowerCase().includes('donat')) return false;
+  return true;
+}
+function renderSalesReport(){
+  const target=document.getElementById('salesReportResult');
+  if(!target) return;
+  const sales=getSales().filter(saleMatchesReportFilters);
+  const expected=sales.reduce((sum,sale)=>sum+saleExpectedTotal(sale),0);
+  const entered=sales.reduce((sum,sale)=>sum+(saleEnteredAmount(sale) ?? 0),0);
+  const counted=sales.filter(sale=>saleEnteredAmount(sale)!==null);
+  const variance=counted.reduce((sum,sale)=>sum+(saleVariance(sale) ?? 0),0);
+  const pantryCount=sales.reduce((sum,sale)=>sum+(sale.items || []).filter(item=>item.type==='pantry').length,0);
+  const discrepancyCount=sales.filter(sale=>{ const value=saleVariance(sale); return value!==null && Math.abs(value)>=0.005; }).length;
+  target.innerHTML=`<div class="grid grid-3">
+    <div class="summary"><strong>Sales in report</strong><div class="price">${sales.length}</div></div>
+    <div class="summary"><strong>Expected</strong><div class="price">${money(expected)}</div></div>
+    <div class="summary"><strong>Entered</strong><div class="price">${money(entered)}</div></div>
+    <div class="summary"><strong>Variance</strong><div class="price">${money(variance)}</div></div>
+    <div class="summary"><strong>Pantry Ready items</strong><div class="price">${pantryCount}</div></div>
+    <div class="summary"><strong>Discrepancies</strong><div class="price">${discrepancyCount}</div></div>
+  </div>
+  <div class="spacer"></div>
+  ${sales.length?`<div class="table-wrap"><table><tr><th>Date</th><th>Method</th><th>Expected</th><th>Entered</th><th>Variance</th><th>Items</th><th>Notes</th></tr>${sales.slice(0,50).map(sale=>`<tr><td>${formatSaleDate(sale.date)}</td><td>${escapeHTML(sale.method || '')}</td><td>${money(saleExpectedTotal(sale))}</td><td>${saleEnteredAmount(sale)===null?'Not counted':money(saleEnteredAmount(sale))}</td><td>${saleVariance(sale)===null?'—':money(saleVariance(sale))}</td><td>${escapeHTML((sale.items||[]).map(item=>item.name).join(', '))}</td><td>${escapeHTML(sale.note || '')}</td></tr>`).join('')}</table></div>`:'<p class="small">No sales match those filters.</p>'}`;
+}
+function renderInventoryReport(){
+  const target=document.getElementById('inventoryReportResult');
+  if(!target) return;
+  const category=document.getElementById('inventoryReportCategory')?.value || 'all';
+  const location=document.getElementById('inventoryReportLocation')?.value.trim().toLowerCase() || '';
+  const status=document.getElementById('inventoryReportStatus')?.value || 'all';
+  const items=getInventoryItems().filter(item=>{
+    if(category!=='all' && item.category!==category) return false;
+    if(location && !String(item.location || '').toLowerCase().includes(location)) return false;
+    const difference=inventoryDifference(item);
+    const actual=inventoryAmount(item.quantity) ?? 0;
+    const reorder=inventoryAmount(item.reorderPoint);
+    if(status==='short' && !(difference!==null && difference<0)) return false;
+    if(status==='over' && !(difference!==null && difference>0)) return false;
+    if(status==='reorder' && !(reorder!==null && actual<=reorder)) return false;
+    if(status==='sellable' && !sellableExtraCategories.includes(item.category)) return false;
+    return true;
+  });
+  const actualTotal=items.reduce((sum,item)=>sum+(inventoryAmount(item.quantity) || 0),0);
+  const plannedTotal=items.reduce((sum,item)=>sum+(inventoryAmount(item.plannedQuantity) || 0),0);
+  const sellable=items.filter(item=>sellableExtraCategories.includes(item.category)).length;
+  target.innerHTML=`<div class="grid grid-3">
+    <div class="summary"><strong>Items</strong><div class="price">${items.length}</div></div>
+    <div class="summary"><strong>Planned total</strong><div class="price">${inventoryAmountLabel(plannedTotal)}</div></div>
+    <div class="summary"><strong>Actual total</strong><div class="price">${inventoryAmountLabel(actualTotal)}</div></div>
+    <div class="summary"><strong>Sellable extras</strong><div class="price">${sellable}</div></div>
+  </div>
+  <div class="spacer"></div>
+  ${items.length?`<div class="table-wrap"><table><tr><th>Item</th><th>Category</th><th>Location</th><th>Planned</th><th>Actual</th><th>Status</th><th>Sticker</th></tr>${items.slice(0,80).map(item=>`<tr><td>${escapeHTML(item.name || '')}</td><td>${escapeHTML(item.category || '')}</td><td>${escapeHTML(item.location || '')}</td><td>${inventoryAmountLabel(item.plannedQuantity)}</td><td>${inventoryAmountLabel(item.quantity)} ${escapeHTML(item.unit || '')}</td><td>${inventoryStatusBadge(item)}</td><td>${escapeHTML(item.stickerId || '')}</td></tr>`).join('')}</table></div>`:'<p class="small">No inventory items match those filters.</p>'}`;
 }
 
 function showAdmin(tab='dashboard'){
@@ -3107,6 +3314,24 @@ function showAdmin(tab='dashboard'){
         <div class="summary"><strong>Entered</strong><div class="price">${money(enteredTotal)}</div></div>
         <div class="summary"><strong>Variance counted</strong><div class="price">${money(variance)}</div></div>
       </div>
+      <div class="spacer"></div>
+      <details class="summary">
+        <summary>Reports and filters</summary>
+        <div class="form-grid">
+          <div class="grid grid-3">
+            <div><label>Start date</label><input id="reportStart" type="date" onchange="renderSalesReport()"></div>
+            <div><label>End date</label><input id="reportEnd" type="date" onchange="renderSalesReport()"></div>
+            <div><label>Product</label><select id="reportProduct" onchange="renderSalesReport()"><option value="all">All products</option>${products.map(product=>`<option value="${product.id}">${product.name}</option>`).join('')}</select></div>
+            <div><label>Location</label><input id="reportLocation" placeholder="Common Good, market, delivery..." oninput="renderSalesReport()"></div>
+            <div><label>Payment method</label><select id="reportMethod" onchange="renderSalesReport()"><option value="all">All methods</option><option>Cash</option><option>Check</option><option>Venmo</option><option>Test</option></select></div>
+            <div><label>Format</label><select id="reportFormat" onchange="renderSalesReport()"><option value="all">All formats</option><option value="pantry">Pantry Ready</option><option value="refill">Refill</option><option value="extras">Extras</option></select></div>
+            <div><label>Variance</label><select id="reportVariance" onchange="renderSalesReport()"><option value="all">All</option><option value="matched">Matched</option><option value="short">Short</option><option value="over">Over</option><option value="not-counted">Not counted</option></select></div>
+            <label class="check-row"><input id="reportDonation" type="checkbox" onchange="renderSalesReport()"><span>Donations / overpayment notes only</span></label>
+          </div>
+          <button class="secondary" type="button" onclick="renderSalesReport()">Run report</button>
+          <div id="salesReportResult"></div>
+        </div>
+      </details>
       <div class="spacer"></div>
       <details class="summary">
         <summary>Add a test sale</summary>
@@ -3268,8 +3493,31 @@ function showAdmin(tab='dashboard'){
   }
   if(tab==='inventory'){
     const items=getInventoryItems();
+    const categoryOptions=inventoryCategories.map(category=>`<option>${category}</option>`).join('');
     body=`<section class="card"><h2>Inventory</h2>
-      <div class="notice">Track planned amounts against actual products on hand for raw ingredients, packaging, finished goods, Pantry Ready stock, refill-bin quantities, glass pieces, trunk boxes, and market allocations.</div>
+      <div class="notice">Track raw ingredients, packaging, finished goods, refill stock, trunk boxes, market stock, accessories, and sourced jars without turning each one into a whole product setup.</div>
+      <div class="spacer"></div>
+      <details class="summary" open>
+        <summary>Quick process sourced jar</summary>
+        <div class="form-grid">
+          <div class="grid grid-3">
+            <div><label>Jar name</label><input id="jarProcessName" placeholder="Blue lid pint jar, estate amber canister..."></div>
+            <div><label>Sticker ID</label><input id="jarProcessStickerId" placeholder="Auto if blank"></div>
+            <div><label>Category</label><select id="jarProcessCategory"><option>One-of-a-kind glass</option><option>Basic jar</option><option>Accessory</option></select></div>
+            <div><label>Tare weight</label><input id="jarProcessTare" type="number" step=".01" placeholder="oz"></div>
+            <div><label>Sell price</label><input id="jarProcessPrice" type="number" step=".01" placeholder="0.00"></div>
+            <div><label>Location</label><input id="jarProcessLocation" placeholder="Processing, shelf, trunk box, market tote"></div>
+            <div><label>Lid status</label><select id="jarProcessLidStatus"><option>Has sealing lid</option><option>Needs lid</option><option>Decor only</option><option>Needs review</option></select></div>
+            <div><label>Source</label><input id="jarProcessSource" placeholder="Estate sale, donated, thrifted..."></div>
+            <div><label>Type / size</label><input id="jarProcessSubcategory" placeholder="Pint, pump bottle, gasket jar..."></div>
+          </div>
+          <div class="grid grid-2">
+            <div><label>Quick photo</label><input type="file" accept="image/*" capture="environment" onchange="handleJarProcessPhoto(this)"><input id="jarProcessPhotoData" type="hidden"><div id="jarProcessPhotoPreview"></div></div>
+            <div><label>Notes</label><textarea id="jarProcessNotes" placeholder="Condition, lid type, gasket, flaws, shelf plan..."></textarea></div>
+          </div>
+          <button class="primary" type="button" onclick="saveSourcedJar()">Save jar and print sticker</button>
+        </div>
+      </details>
       <div class="spacer"></div>
       <details class="summary" open>
         <summary>Add inventory item</summary>
@@ -3277,36 +3525,59 @@ function showAdmin(tab='dashboard'){
           <div class="grid grid-3">
             <div><label>Item name</label><input id="inventoryName" placeholder="Example: Baking soda, 8 oz amber bottle, Tallow Lotion 2 oz"></div>
             <div><label>Linked product</label><select id="inventoryProductId"><option value="">Not product-specific</option>${products.map(product=>`<option value="${product.id}">${product.name}</option>`).join('')}</select></div>
-            <div><label>Category</label><select id="inventoryCategory"><option>Raw ingredient</option><option>Packaging</option><option>Label</option><option>Finished Pantry Ready</option><option>Refill bulk</option><option>Glass</option><option>Market stock</option><option>Trunk box</option><option>Other</option></select></div>
+            <div><label>Category</label><select id="inventoryCategory">${categoryOptions}</select></div>
+            <div><label>Type / department</label><input id="inventorySubcategory" placeholder="Bottle, brush, laundry, jar size..."></div>
             <div><label>Location</label><input id="inventoryLocation" placeholder="Common Good, trunk box, market tote..."></div>
             <div><label>Planned amount</label><input id="inventoryPlannedQuantity" type="number" step=".01" placeholder="Target count or amount"></div>
             <div><label>Actual products on hand</label><input id="inventoryActualQuantity" type="number" step=".01" placeholder="What is actually there"></div>
             <div><label>Unit</label><input id="inventoryUnit" placeholder="oz, lb, each, bottles, jars"></div>
             <div><label>Reorder point</label><input id="inventoryReorder" type="number" step=".01" placeholder="Optional"></div>
+            <div><label>Sell price</label><input id="inventoryPrice" type="number" step=".01" placeholder="Optional"></div>
+            <div><label>Tare weight</label><input id="inventoryTare" type="number" step=".01" placeholder="Optional oz"></div>
+            <div><label>Sticker ID</label><input id="inventoryStickerId" placeholder="Optional"></div>
+            <div><label>Lid status</label><select id="inventoryLidStatus"><option value="">Not applicable</option><option>Has sealing lid</option><option>Needs lid</option><option>Decor only</option><option>Needs review</option></select></div>
           </div>
           <div class="grid grid-2">
             <div><label>Supplier / source</label><input id="inventorySupplier" placeholder="Azure, Costco, Uline, estate sale..."></div>
             <div><label>Purchase link</label><input id="inventoryLink" placeholder="https://..."></div>
           </div>
+          <div><label>Photo</label><input type="file" accept="image/*" capture="environment" onchange="handleInventoryPhotoInput(this)"><input id="inventoryPhotoData" type="hidden"><div id="inventoryPhotoPreview"></div></div>
           <div><label>Notes</label><textarea id="inventoryNotes" placeholder="Lot, expiration, jar lid type, scent, batch, reorder notes, allocation notes..."></textarea></div>
           <button class="primary" type="button" onclick="saveInventoryItem()">Save inventory item</button>
           <div id="inventoryMessage"></div>
         </div>
       </details>
       <div class="spacer"></div>
-      ${items.length?`<div class="table-wrap"><table><tr><th>Item</th><th>Product</th><th>Category</th><th>Planned</th><th>Actual</th><th>Unit</th><th>Difference</th><th>Status</th><th>Reorder</th><th>Location</th><th>Supplier</th><th>Notes</th><th></th></tr>
+      <details class="summary">
+        <summary>Inventory reports and filters</summary>
+        <div class="form-grid">
+          <div class="grid grid-3">
+            <div><label>Category</label><select id="inventoryReportCategory" onchange="renderInventoryReport()"><option value="all">All categories</option>${inventoryCategories.map(category=>`<option>${category}</option>`).join('')}</select></div>
+            <div><label>Location</label><input id="inventoryReportLocation" placeholder="Trunk box, market, shelf..." oninput="renderInventoryReport()"></div>
+            <div><label>Status</label><select id="inventoryReportStatus" onchange="renderInventoryReport()"><option value="all">All</option><option value="short">Short</option><option value="over">Over planned</option><option value="reorder">At reorder point</option><option value="sellable">Sellable extras</option></select></div>
+          </div>
+          <button class="secondary" type="button" onclick="renderInventoryReport()">Run inventory report</button>
+          <div id="inventoryReportResult"></div>
+        </div>
+      </details>
+      <div class="spacer"></div>
+      ${items.length?`<div class="table-wrap"><table><tr><th>Photo</th><th>Item</th><th>Product</th><th>Category</th><th>Planned</th><th>Actual</th><th>Unit</th><th>Difference</th><th>Status</th><th>Price</th><th>Tare</th><th>Sticker</th><th>Reorder</th><th>Location</th><th>Supplier</th><th>Notes</th><th></th></tr>
         ${items.map((item,index)=>{
           const difference=inventoryDifference(item);
           const differenceLabel=difference===null?'Not planned':`${difference>0?'+':''}${inventoryAmountLabel(difference)}`;
           return `<tr>
+          <td>${item.photo?`<img class="glass-photo" src="${item.photo}" alt="${escapeHTML(item.name || 'Inventory photo')}">`:''}</td>
           <td><input id="inventoryname${index}" value="${escapeHTML(item.name || '')}" onchange="updateInventoryItem(${index},'name')"></td>
           <td><select id="inventoryproductId${index}" onchange="updateInventoryItem(${index},'productId')"><option value="">Not linked</option>${products.map(product=>`<option value="${product.id}" ${item.productId===product.id?'selected':''}>${product.name}</option>`).join('')}</select></td>
-          <td><select id="inventorycategory${index}" onchange="updateInventoryItem(${index},'category')">${['Raw ingredient','Packaging','Label','Finished Pantry Ready','Refill bulk','Glass','Market stock','Trunk box','Other'].map(category=>`<option ${item.category===category?'selected':''}>${category}</option>`).join('')}</select></td>
+          <td><select id="inventorycategory${index}" onchange="updateInventoryItem(${index},'category')">${inventoryCategories.map(category=>`<option ${item.category===category?'selected':''}>${category}</option>`).join('')}</select></td>
           <td><input id="inventoryplannedQuantity${index}" type="number" step=".01" value="${item.plannedQuantity ?? ''}" onchange="updateInventoryItem(${index},'plannedQuantity')"></td>
           <td><input id="inventoryquantity${index}" type="number" step=".01" value="${item.quantity ?? ''}" onchange="updateInventoryItem(${index},'quantity')"></td>
           <td><input id="inventoryunit${index}" value="${escapeHTML(item.unit || '')}" onchange="updateInventoryItem(${index},'unit')"></td>
           <td>${escapeHTML(differenceLabel)}</td>
           <td>${inventoryStatusBadge(item)}</td>
+          <td><input id="inventoryprice${index}" type="number" step=".01" value="${item.price ?? ''}" onchange="updateInventoryItem(${index},'price')"></td>
+          <td><input id="inventorytare${index}" type="number" step=".01" value="${item.tare ?? ''}" onchange="updateInventoryItem(${index},'tare')"></td>
+          <td><input id="inventorystickerId${index}" value="${escapeHTML(item.stickerId || '')}" onchange="updateInventoryItem(${index},'stickerId')"><button class="tiny-action" type="button" onclick="printInventorySticker(${index})">Print</button></td>
           <td><input id="inventoryreorderPoint${index}" type="number" step=".01" value="${item.reorderPoint ?? ''}" onchange="updateInventoryItem(${index},'reorderPoint')"></td>
           <td><input id="inventorylocation${index}" value="${escapeHTML(item.location || '')}" onchange="updateInventoryItem(${index},'location')"></td>
           <td><input id="inventorysupplier${index}" value="${escapeHTML(item.supplier || '')}" onchange="updateInventoryItem(${index},'supplier')"></td>

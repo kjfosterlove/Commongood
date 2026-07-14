@@ -12,11 +12,11 @@ For the owner area, use the owner password:
 
 ## Included
 
-- Public Refill, Pantry Ready, and Glass Collection flows
+- Public Refill, Pantry Ready, and Common Good Extras flows
 - Tare-weight refill calculator
 - Cart
 - Cash, check, and Venmo instruction screens
-- Saved customer containers
+- Saved customer jars
 - Owner dashboard
 - Product notebook with recipes, combined cost/pricing, packaging/labels, marketing notes, and batch records
 - Inventory planning area
