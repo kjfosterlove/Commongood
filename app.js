@@ -28,7 +28,9 @@ const glass = [
 
 let cart = JSON.parse(localStorage.getItem('cg_cart') || '[]');
 let savedContainers = JSON.parse(localStorage.getItem('cg_containers') || '[]');
-let adminUnlocked = false;
+const ownerPassword='Refillery2026!';
+const ownerSessionDays=90;
+let adminUnlocked = ownerSessionActive();
 const defaultHourlyLaborRate=30;
 
 function money(n){ return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n); }
@@ -155,6 +157,86 @@ function getSales(){ return JSON.parse(localStorage.getItem('cg_sales')||'[]'); 
 function saveSales(sales){ localStorage.setItem('cg_sales',JSON.stringify(sales)); }
 function getMobileRefillRequests(){ return JSON.parse(localStorage.getItem('cg_mobile_refill_requests')||'[]'); }
 function saveMobileRefillRequests(requests){ localStorage.setItem('cg_mobile_refill_requests',JSON.stringify(requests)); }
+function getOwnerSettings(){ return JSON.parse(localStorage.getItem('cg_owner_settings')||'{}'); }
+function saveOwnerSettings(settings){ localStorage.setItem('cg_owner_settings',JSON.stringify(settings)); }
+function saveOwnerSettingsFromForm(){
+  const settings={
+    venmoHandle:document.getElementById('settingVenmoHandle')?.value.trim() || '',
+    returnedCheckFee:document.getElementById('settingReturnedCheckFee')?.value.trim() || '',
+    storeMode:document.getElementById('settingStoreMode')?.value || 'Self-service',
+    alainaPhone:document.getElementById('settingAlainaPhone')?.value.trim() || '',
+    kaeleaPhone:document.getElementById('settingKaeleaPhone')?.value.trim() || ''
+  };
+  saveOwnerSettings(settings);
+  const message=document.getElementById('settingsMessage');
+  if(message) message.textContent='Settings saved.';
+  showAdmin('settings');
+}
+function ownerTextContacts(){
+  const settings=getOwnerSettings();
+  return [
+    {name:'Alaina',phone:settings.alainaPhone || ''},
+    {name:'Kaelea',phone:settings.kaeleaPhone || ''}
+  ];
+}
+function smsHref(phone, body){
+  const clean=normalizePhone(phone);
+  return clean ? `sms:${clean}?&body=${encodeURIComponent(body)}` : '';
+}
+function ownerTextLinksForRequest(request){
+  const body=mobileRequestCopyText(request);
+  return ownerTextContacts().map(contact=>{
+    const href=smsHref(contact.phone, body);
+    return href
+      ? `<a class="secondary text-link" href="${href}">Text ${contact.name}</a>`
+      : `<span class="small">${contact.name} phone needed in Settings</span>`;
+  }).join('');
+}
+function getCustomerProfiles(){ return JSON.parse(localStorage.getItem('cg_customer_profiles')||'{}'); }
+function saveCustomerProfiles(profiles){ localStorage.setItem('cg_customer_profiles',JSON.stringify(profiles)); }
+function normalizePhone(phone){ return String(phone || '').replace(/\D/g,''); }
+function lastCustomerProfile(){
+  const profiles=Object.values(getCustomerProfiles());
+  return profiles.sort((a,b)=>new Date(b.updatedAt || 0)-new Date(a.updatedAt || 0))[0] || null;
+}
+function profileForPhone(phone){
+  const key=normalizePhone(phone);
+  return key ? getCustomerProfiles()[key] || null : null;
+}
+function rememberCustomerProfile(request){
+  const key=normalizePhone(request.phone);
+  if(!key) return;
+  const profiles=getCustomerProfiles();
+  profiles[key]={
+    name:request.name,
+    phone:request.phone,
+    location:request.location || '',
+    textUpdates:!!request.textUpdates,
+    updatedAt:new Date().toISOString()
+  };
+  saveCustomerProfiles(profiles);
+}
+function prefillMobileCustomerFromPhone(){
+  const phone=document.getElementById('mobilePhone')?.value;
+  const profile=profileForPhone(phone);
+  if(!profile) return;
+  const name=document.getElementById('mobileName');
+  const location=document.getElementById('mobileLocation');
+  const textUpdates=document.getElementById('mobileTextUpdates');
+  if(name && !name.value.trim()) name.value=profile.name || '';
+  if(location && !location.value.trim()) location.value=profile.location || '';
+  if(textUpdates) textUpdates.checked=profile.textUpdates !== false;
+  const note=document.getElementById('mobileProfileNote');
+  if(note) note.textContent='We filled in saved delivery details from this device.';
+}
+function ownerSessionActive(){
+  const expires=Number(localStorage.getItem('cg_owner_session_expires') || 0);
+  return Date.now() < expires;
+}
+function rememberOwnerSession(){
+  const expires=Date.now() + ownerSessionDays*24*60*60*1000;
+  localStorage.setItem('cg_owner_session_expires',String(expires));
+}
 function requestStatusBadge(status){
   const key=(status || 'New').toLowerCase().replace(/\s+/g,'-');
   return `<span class="source-badge ${key}">${escapeHTML(status || 'New')}</span>`;
@@ -191,8 +273,10 @@ function saveMarketingConcepts(concepts){ localStorage.setItem('cg_marketing_con
 const backupKeys=[
   'cg_owner_products',
   'cg_product_overrides',
+  'cg_owner_settings',
   'cg_sales',
   'cg_mobile_refill_requests',
+  'cg_customer_profiles',
   'cg_marketing_concepts',
   'cg_post_kits',
   'cg_containers',
@@ -201,7 +285,7 @@ const backupKeys=[
 function backupPayload(){
   const data={};
   backupKeys.forEach(key=>{ data[key]=localStorage.getItem(key); });
-  return {app:'Common Good prototype',version:1,exportedAt:new Date().toISOString(),data};
+  return {app:'Common Good',version:1,exportedAt:new Date().toISOString(),data};
 }
 function downloadDataBackup(){
   const payload=JSON.stringify(backupPayload(),null,2);
@@ -1117,7 +1201,7 @@ function generateMarketingConcept(){
   const hashtags=focus.id==='product'
     ? ['#CommonGood','#Refillery','#LowWasteHome','#PantryReady','#NebraskaSmallBusiness','#SimpleHomeCare',`#${product.category.replace(/[^A-Za-z0-9]/g,'')}Care`]
     : ['#CommonGood','#SmallTownNebraska','#ShopLocalNebraska','#ThoughtfulHome','#Refillery','#SlowLiving','#CommonGoodHome'];
-  const tags=['@commongoodplaceholder','local makers','refill community','nearby homemaking accounts','local market partners'];
+  const tags=['Common Good account','local makers','refill community','nearby homemaking accounts','local market partners'];
   const locationTags=['Common Good','Alvo, Nebraska','vendor market location','nearby small-town Nebraska community'];
   const audioIdeas=[
     'soft acoustic instrumental with a steady homemaking rhythm',
@@ -1843,19 +1927,20 @@ function showMobileRefillRequest(){
   setTitle('Pantry Ready Request');
   const pantryProducts=products.filter(p=>p.pantry && isProductActive(p));
   const pantryOptions=pantryProducts.flatMap(product=>pantryVariants(product).map(variant=>({product,variant})));
+  const savedProfile=lastCustomerProfile();
   app(`<section class="hero">
     <div class="eyebrow">PANTRY READY</div>
     <h2>Tell us what needs restocked.</h2>
-    <p>This is the early version of the QR code form for magnets, markets, porch drop-offs, and Pantry Ready delivery.</p>
+    <p>Use this form for magnet, market, porch drop-off, and Pantry Ready delivery requests.</p>
   </section>
   <section class="card">
     <div class="notice">Delivery fee is not set yet. Common Good will confirm any delivery fee before scheduling your order.</div>
     <div class="spacer"></div>
-    <div class="notice">Prototype note: this saves the request on this device for now. Production should text Common Good, including Alaina and Kaelea, and add the request to the owner Workroom log.</div>
+    <div class="notice">Your request is saved to the Common Good request log. We will use your phone number to coordinate timing, delivery details, and any questions.</div>
     <div class="spacer"></div>
     <div class="form-grid">
       <div><label>Your name</label><input id="mobileName" autocomplete="name" placeholder="Name"></div>
-      <div><label>Phone number</label><input id="mobilePhone" autocomplete="tel" inputmode="tel" placeholder="Best number for text/call"></div>
+      <div><label>Phone number</label><input id="mobilePhone" autocomplete="tel" inputmode="tel" placeholder="Best number for text/call" onblur="prefillMobileCustomerFromPhone()"></div>
       <div><label>Request type</label><select id="mobileType">
         <option>Pack Pantry Ready items</option>
         <option>Delivery or porch drop-off</option>
@@ -1871,7 +1956,12 @@ function showMobileRefillRequest(){
         </div>
       </div>
       <div><label>Packaging / add-on notes</label><textarea id="mobileContainers" placeholder="Example: quantities, scent preferences, extra jars, glass pieces, labels, or things we might bring as add-ons."></textarea></div>
-      <div><label>Pickup, delivery, or address notes</label><textarea id="mobileLocation" placeholder="Market pickup, porch drop-off area, delivery address, or best way to coordinate."></textarea></div>
+      <div><label>Pickup, delivery, or address notes</label><textarea id="mobileLocation" placeholder="Market pickup, porch drop-off area, delivery address, or best way to coordinate.">${escapeHTML(savedProfile?.location || '')}</textarea><p id="mobileProfileNote" class="small">${savedProfile?.location ? 'Saved delivery details are filled in from this device. Update them if needed.' : 'If you request delivery again from this device, this address/note can prefill next time.'}</p></div>
+      <div class="summary">
+        <strong>Text updates</strong>
+        <label class="check-row"><input id="mobileTextUpdates" type="checkbox" ${savedProfile?.textUpdates===false?'':'checked'}><span>Text me updates about this request.</span></label>
+        <p class="small">We will only use text updates for this request unless you ask to receive other updates later.</p>
+      </div>
       <div><label>Anything else?</label><textarea id="mobileNotes" placeholder="Tell us quantities, scents, questions, or what you are almost out of."></textarea></div>
       <button class="primary full" onclick="submitMobileRefillRequest()">Submit request</button>
       <div id="mobileRequestMessage"></div>
@@ -1904,6 +1994,8 @@ function submitMobileRefillRequest(){
     requestType:document.getElementById('mobileType')?.value || 'Pantry Ready request',
     deliveryFee:'Unknown',
     textRecipients:['Alaina','Kaelea'],
+    textUpdates:document.getElementById('mobileTextUpdates')?.checked || false,
+    textUpdateStatus:'Text follow-up needed',
     scheduled:false,
     delivered:false,
     timing:document.getElementById('mobileTiming')?.value.trim() || '',
@@ -1913,6 +2005,7 @@ function submitMobileRefillRequest(){
     notes:document.getElementById('mobileNotes')?.value.trim() || '',
     ownerNotes:''
   };
+  rememberCustomerProfile(request);
   const requests=getMobileRefillRequests();
   requests.unshift(request);
   saveMobileRefillRequests(requests);
@@ -2177,7 +2270,7 @@ function addPantry(id, variantId='default'){
 
 function showGlass(){
   setTitle('Glass Collection');
-  app(`<div class="notice">Common Good-supplied refill containers are glass only. Customers may bring their own clean containers of any suitable material. Photos are optional for glass inventory; prices and tare weights are prototype assumptions unless marked otherwise.</div><div class="spacer"></div>
+  app(`<div class="notice">Common Good-supplied refill containers are glass only. Customers may bring their own clean containers of any suitable material. Photos are optional for glass inventory; prices and tare weights should be verified before they are used for checkout.</div><div class="spacer"></div>
   <div class="product-list">${glass.map(g=>`
     <div class="product-row glass-row">
       ${glassPhoto(g)}
@@ -2240,14 +2333,16 @@ function showPayment(type){
       <button class="primary full" onclick="finishSale('Check')">I deposited my check</button></section>`);
   }
   if(type==='venmo'){
+    const settings=getOwnerSettings();
+    const venmoHandle=settings.venmoHandle || '';
     app(`<section class="card" style="text-align:center"><h2>Venmo total: ${money(total)}</h2>
       <div class="passcode">${checkout.passcode}</div>
-      <div class="qr" aria-label="Placeholder Venmo QR code"></div>
-      <p><strong>@CommonGoodPlaceholder</strong></p>
+      <div class="qr" aria-label="Venmo QR code area"></div>
+      <p><strong>${escapeHTML(venmoHandle || 'Add Venmo handle in Owner Settings')}</strong></p>
       <p class="small">Use the passcode in the Venmo description so this sale can be matched later.</p>
       <a class="primary" style="display:inline-block;text-decoration:none" href="https://venmo.com/" target="_blank">Open Venmo</a>
       <div class="spacer"></div><button class="secondary full" onclick="finishSale('Venmo')">I completed payment</button>
-      <p class="small">Replace the placeholder handle and QR code with your verified business Venmo details before use.</p></section>`);
+      ${venmoHandle?'':'<p class="small">Owner action needed: add the verified business Venmo handle in Settings before using Venmo checkout.</p>'}</section>`);
   }
 }
 
@@ -2274,13 +2369,17 @@ function showLogin(){
   setTitle('Owner Login');
   if(adminUnlocked){showAdmin();return;}
   app(`<section class="card" style="max-width:460px;margin:auto"><h2>Common Good Workroom</h2>
-    <label>Password</label><input id="password" type="password" placeholder="Prototype password: common" onkeydown="if(event.key==='Enter') login()">
+    <label>Password</label><input id="password" type="password" placeholder="Owner password" autocomplete="current-password" onkeydown="if(event.key==='Enter') login()">
     <div class="spacer"></div><button class="primary full" onclick="login()">Sign in</button>
-    <p class="small">This prototype uses a demonstration password only. Production will require secure authentication.</p></section>`);
+    <p class="small">Owner access stays remembered on this device for 90 days.</p></section>`);
 }
 function login(){
-  if(document.getElementById('password').value==='common'){adminUnlocked=true;showAdmin();}
-  else alert('Incorrect password. Prototype password: common');
+  if(document.getElementById('password').value===ownerPassword){
+    adminUnlocked=true;
+    rememberOwnerSession();
+    showAdmin();
+  }
+  else alert('Incorrect password.');
 }
 
 function saleExpectedTotal(sale){ return Number.isFinite(sale.total) ? sale.total : 0; }
@@ -2380,7 +2479,8 @@ function deleteMobileRequest(index){
 }
 function mobileRequestCopyText(request){
   const products=(request.products||[]).map(p=>p.name).join(', ') || 'See notes';
-  return `Pantry Ready request\nName: ${request.name}\nPhone: ${request.phone}\nText recipients: Alaina and Kaelea\nType: ${request.requestType}\nDelivery fee: ${request.deliveryFee || 'Unknown'}\nScheduled: ${request.scheduled ? 'Yes' : 'No'}\nDelivered: ${request.delivered ? 'Yes' : 'No'}\nTiming: ${request.timing || 'Flexible'}\nProducts: ${products}\nPackaging/add-ons: ${request.containers || ''}\nLocation: ${request.location || ''}\nNotes: ${request.notes || ''}`;
+  const recipients=ownerTextContacts().map(contact=>`${contact.name}${contact.phone ? ` (${contact.phone})` : ''}`).join(', ');
+  return `Pantry Ready request\nName: ${request.name}\nPhone: ${request.phone}\nText recipients: ${recipients}\nType: ${request.requestType}\nDelivery fee: ${request.deliveryFee || 'Unknown'}\nScheduled: ${request.scheduled ? 'Yes' : 'No'}\nDelivered: ${request.delivered ? 'Yes' : 'No'}\nTiming: ${request.timing || 'Flexible'}\nProducts: ${products}\nPackaging/add-ons: ${request.containers || ''}\nLocation: ${request.location || ''}\nNotes: ${request.notes || ''}`;
 }
 function copyMobileRequest(index){
   const request=getMobileRefillRequests()[index];
@@ -2760,8 +2860,10 @@ function showAdmin(tab='dashboard'){
     const openCount=requests.filter(mobileRequestOpen).length;
     const scheduledCount=requests.filter(request=>request.scheduled && !request.delivered).length;
     const deliveredCount=requests.filter(request=>request.delivered).length;
+    const missingOwnerPhones=ownerTextContacts().filter(contact=>!normalizePhone(contact.phone)).map(contact=>contact.name);
     body=`<section class="card"><h2>Pantry Ready Requests</h2>
-      <div class="notice">This is the prototype replacement for a Google Form. The customer QR/magnet should lead directly to the Request page. Production should text Common Good, including Alaina and Kaelea, and store the Pantry Ready request in this shared backend log.</div>
+      <div class="notice">The customer QR/magnet should lead directly to the Request page. New requests are stored here and can be sent by text to the owner phones saved in Settings.</div>
+      ${missingOwnerPhones.length?`<div class="notice warning">Add ${missingOwnerPhones.join(' and ')}'s phone number in Settings so request text links are ready.</div>`:''}
       <div class="spacer"></div>
       <div class="grid grid-3">
         <div class="summary"><strong>Total requests</strong><div class="price">${requests.length}</div></div>
@@ -2769,7 +2871,7 @@ function showAdmin(tab='dashboard'){
         <div class="summary"><strong>Scheduled</strong><div class="price">${scheduledCount}</div></div>
         <div class="summary"><strong>Delivered</strong><div class="price">${deliveredCount}</div></div>
         <div class="summary"><strong>Delivery fee</strong><p class="small">Unknown. Confirm before scheduling.</p></div>
-        <div class="summary"><strong>Text alerts</strong><p class="small">Alaina and Kaelea should both receive production notifications.</p></div>
+        <div class="summary"><strong>Text alerts</strong><p class="small">Use the text buttons on each request to notify Alaina and Kaelea. Customer updates are tracked per request.</p></div>
       </div>
       <div class="spacer"></div>
       ${requests.length?`<div class="request-list">${requests.map((request,i)=>{
@@ -2786,13 +2888,15 @@ function showAdmin(tab='dashboard'){
             <div><strong>Phone</strong><p>${escapeHTML(request.phone)}</p></div>
             <div><strong>Type</strong><p>${escapeHTML(request.requestType)}</p></div>
             <div><strong>Delivery fee</strong><p>${escapeHTML(request.deliveryFee || 'Unknown')}</p></div>
-            <div><strong>Text recipients</strong><p>Alaina and Kaelea</p></div>
+            <div><strong>Owner text recipients</strong><p>${ownerTextContacts().map(contact=>`${contact.name}: ${contact.phone || 'Add in Settings'}`).join('<br>')}</p></div>
+            <div><strong>Customer text updates</strong><p>${request.textUpdates===false?'No opt-in recorded':'Opted in'} · ${escapeHTML(request.textUpdateStatus || 'Text follow-up needed')}</p></div>
             <div><strong>Timing</strong><p>${escapeHTML(request.timing || 'Flexible')}</p></div>
             <div><strong>Products</strong><p>${escapeHTML(productList)}</p></div>
             <div><strong>Packaging / add-on notes</strong><p>${escapeHTML(request.containers || 'None entered')}</p></div>
             <div><strong>Pickup / delivery notes</strong><p>${escapeHTML(request.location || 'None entered')}</p></div>
           </div>
           ${request.notes?`<div><strong>Customer notes</strong><p>${escapeHTML(request.notes)}</p></div>`:''}
+          <div class="button-row">${ownerTextLinksForRequest(request)}</div>
           <div class="form-grid request-admin-grid">
             <div class="summary">
               <strong>Request log</strong>
@@ -2807,7 +2911,7 @@ function showAdmin(tab='dashboard'){
   }
   if(tab==='products'){
     body=`<section class="card"><h2>Products</h2>
-      <div class="notice">Current prices are prototype assumptions unless a product shows Entered from COGS.</div>
+      <div class="notice">Prices marked Assumed price should be reviewed before relying on them for final margins. Products marked Entered from COGS have owner-entered costing details.</div>
       <div class="spacer"></div>
       <button class="primary" onclick="showAdmin('addProduct')">Add product</button>
       <div class="spacer"></div>
@@ -2906,14 +3010,38 @@ function showAdmin(tab='dashboard'){
     </section>`;
   }
   if(tab==='settings'){
+    const settings=getOwnerSettings();
     body=`<section class="card"><h2>Settings</h2>
-      <label>Venmo business handle</label><input value="@CommonGoodPlaceholder">
-      <label>Returned-check fee wording</label><textarea>Returned checks are subject to the posted fee and collection costs allowed by law.</textarea>
-      <label>Store mode</label><select><option>Self-service</option><option>Staff-assisted</option><option>Market</option></select>
-      <button class="primary">Save settings</button></section>
+      <label>Venmo business handle</label><input id="settingVenmoHandle" placeholder="Enter verified business Venmo handle" value="${escapeHTML(settings.venmoHandle || '')}">
+      <label>Returned-check fee wording</label><textarea id="settingReturnedCheckFee">${escapeHTML(settings.returnedCheckFee || 'Returned checks are subject to the posted fee and collection costs allowed by law.')}</textarea>
+      <label>Store mode</label><select id="settingStoreMode"><option ${settings.storeMode==='Self-service'?'selected':''}>Self-service</option><option ${settings.storeMode==='Staff-assisted'?'selected':''}>Staff-assisted</option><option ${settings.storeMode==='Market'?'selected':''}>Market</option></select>
+      <div class="grid grid-2">
+        <div><label>Alaina text number</label><input id="settingAlainaPhone" type="tel" inputmode="tel" placeholder="Add Alaina's phone number" value="${escapeHTML(settings.alainaPhone || '')}"></div>
+        <div><label>Kaelea text number</label><input id="settingKaeleaPhone" type="tel" inputmode="tel" placeholder="Add Kaelea's phone number" value="${escapeHTML(settings.kaeleaPhone || '')}"></div>
+      </div>
+      <button class="primary" type="button" onclick="saveOwnerSettingsFromForm()">Save settings</button>
+      <p id="settingsMessage" class="small"></p></section>
+      <section class="card">
+        <h2>Owner Reminders</h2>
+        <div class="notice">Next build priorities to remember before this becomes a real operating system.</div>
+        <ul>
+          <li>Add Reports: sales by date range, product, location, payment method, Pantry Ready, variance, donations, and discrepancies.</li>
+          <li>Build out Inventory: raw ingredients, packaging, finished goods, refill stock, trunk box, markets, reorder points, and one-of-a-kind glass.</li>
+          <li>Connect real text updates: customer request updates plus owner alerts for Alaina and Kaelea.</li>
+          <li>Owner security: replace device-remembered password access with real owner accounts when the app moves beyond static hosting.</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>Text Updates</h2>
+        <div class="notice">Customer requests record text-update permission and owner follow-up needs. The current version creates ready-to-send text links; automatic texting will require an SMS provider later.</div>
+        <div class="grid grid-2">
+          <div><label>Owner text recipients</label><input value="${escapeHTML(ownerTextContacts().map(contact=>`${contact.name}${contact.phone ? `: ${contact.phone}` : ''}`).join(' / '))}" readonly></div>
+          <div><label>Customer update status</label><input value="Opt-in recorded on Pantry Ready requests"></div>
+        </div>
+      </section>
       <section class="card">
         <h2>Data Backup</h2>
-        <div class="notice">Prototype data is saved in this browser. Download a backup whenever you enter COGS, recipes, batch records, products, requests, containers, sales, or marketing ideas you care about.</div>
+        <div class="notice">Owner data is saved in this browser. Download a backup whenever you enter COGS, recipes, batch records, products, requests, containers, sales, or marketing ideas you care about.</div>
         <div class="button-row">
           <button class="primary" type="button" onclick="downloadDataBackup()">Download backup file</button>
         </div>
