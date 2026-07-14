@@ -87,6 +87,17 @@ p { line-height: 1.45; }
   padding: 18px;
   box-shadow: 0 5px 18px rgba(51, 42, 20, .05);
 }
+.dashboard-card {
+  color: var(--ink);
+  text-align: left;
+  width: 100%;
+}
+.dashboard-card:hover,
+.dashboard-card:focus {
+  border-color: var(--olive);
+  outline: 2px solid rgba(108, 92, 44, .18);
+  outline-offset: 2px;
+}
 #app,
 .hero,
 .card,

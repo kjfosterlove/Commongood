@@ -183,14 +183,17 @@ function smsHref(phone, body){
   const clean=normalizePhone(phone);
   return clean ? `sms:${clean}?&body=${encodeURIComponent(body)}` : '';
 }
+function ownerSmsHrefForRequest(request){
+  const numbers=ownerTextContacts().map(contact=>normalizePhone(contact.phone)).filter(Boolean);
+  if(!numbers.length) return '';
+  return `sms:${numbers.join(',')}?&body=${encodeURIComponent(mobileRequestCopyText(request))}`;
+}
 function ownerTextLinksForRequest(request){
-  const body=mobileRequestCopyText(request);
-  return ownerTextContacts().map(contact=>{
-    const href=smsHref(contact.phone, body);
-    return href
-      ? `<a class="secondary text-link" href="${href}">Text ${contact.name}</a>`
-      : `<span class="small">${contact.name} phone needed in Settings</span>`;
-  }).join('');
+  const href=ownerSmsHrefForRequest(request);
+  const missing=ownerTextContacts().filter(contact=>!normalizePhone(contact.phone)).map(contact=>contact.name);
+  if(href && !missing.length) return `<a class="secondary text-link" href="${href}">Text Alaina and Kaelea</a>`;
+  if(href) return `<a class="secondary text-link" href="${href}">Text saved owner numbers</a><span class="small">${missing.join(' and ')} phone needed in Settings</span>`;
+  return '<span class="small">Owner phone numbers needed in Settings before text links are ready.</span>';
 }
 function getCustomerProfiles(){ return JSON.parse(localStorage.getItem('cg_customer_profiles')||'{}'); }
 function saveCustomerProfiles(profiles){ localStorage.setItem('cg_customer_profiles',JSON.stringify(profiles)); }
@@ -219,15 +222,22 @@ function rememberCustomerProfile(request){
 function prefillMobileCustomerFromPhone(){
   const phone=document.getElementById('mobilePhone')?.value;
   const profile=profileForPhone(phone);
-  if(!profile) return;
+  const note=document.getElementById('mobileProfileNote');
+  if(!normalizePhone(phone)){
+    if(note) note.textContent='Enter your phone number first. If it matches a previous Pantry Ready delivery request from this device, saved delivery details can fill in.';
+    return;
+  }
+  if(!profile){
+    if(note) note.textContent='No saved delivery details found for this phone number on this device.';
+    return;
+  }
   const name=document.getElementById('mobileName');
   const location=document.getElementById('mobileLocation');
   const textUpdates=document.getElementById('mobileTextUpdates');
   if(name && !name.value.trim()) name.value=profile.name || '';
   if(location && !location.value.trim()) location.value=profile.location || '';
   if(textUpdates) textUpdates.checked=profile.textUpdates !== false;
-  const note=document.getElementById('mobileProfileNote');
-  if(note) note.textContent='We filled in saved delivery details from this device.';
+  if(note) note.textContent='Saved delivery details filled in for this phone number.';
 }
 function ownerSessionActive(){
   const expires=Number(localStorage.getItem('cg_owner_session_expires') || 0);
@@ -242,11 +252,12 @@ function requestStatusBadge(status){
   return `<span class="source-badge ${key}">${escapeHTML(status || 'New')}</span>`;
 }
 function mobileRequestStatusLabel(request){
+  if(request.orderCompleted || request.status==='Completed') return 'Completed';
   if(request.delivered || request.status==='Delivered' || request.status==='Closed') return 'Delivered';
   if(request.scheduled || request.status==='Packed') return 'Scheduled';
   return request.status || 'New';
 }
-function mobileRequestOpen(request){ return !request.delivered && !['Delivered','Closed'].includes(request.status); }
+function mobileRequestOpen(request){ return !request.orderCompleted && !['Completed','Closed'].includes(request.status); }
 function generatePasscode(){
   const words=['Olive','Fig','Vine','Lamp','Manna','Mercy','Grace','Cedar','Dove','Lily','Bread','Branch'];
   const word=words[Math.floor(Math.random()*words.length)];
@@ -1927,7 +1938,6 @@ function showMobileRefillRequest(){
   setTitle('Pantry Ready Request');
   const pantryProducts=products.filter(p=>p.pantry && isProductActive(p));
   const pantryOptions=pantryProducts.flatMap(product=>pantryVariants(product).map(variant=>({product,variant})));
-  const savedProfile=lastCustomerProfile();
   app(`<section class="hero">
     <div class="eyebrow">PANTRY READY</div>
     <h2>Tell us what needs restocked.</h2>
@@ -1956,10 +1966,10 @@ function showMobileRefillRequest(){
         </div>
       </div>
       <div><label>Packaging / add-on notes</label><textarea id="mobileContainers" placeholder="Example: quantities, scent preferences, extra jars, glass pieces, labels, or things we might bring as add-ons."></textarea></div>
-      <div><label>Pickup, delivery, or address notes</label><textarea id="mobileLocation" placeholder="Market pickup, porch drop-off area, delivery address, or best way to coordinate.">${escapeHTML(savedProfile?.location || '')}</textarea><p id="mobileProfileNote" class="small">${savedProfile?.location ? 'Saved delivery details are filled in from this device. Update them if needed.' : 'If you request delivery again from this device, this address/note can prefill next time.'}</p></div>
+      <div><label>Pickup, delivery, or address notes</label><textarea id="mobileLocation" placeholder="Market pickup, porch drop-off area, delivery address, or best way to coordinate."></textarea><p id="mobileProfileNote" class="small">Enter your phone number first. If it matches a previous Pantry Ready delivery request from this device, saved delivery details can fill in.</p></div>
       <div class="summary">
         <strong>Text updates</strong>
-        <label class="check-row"><input id="mobileTextUpdates" type="checkbox" ${savedProfile?.textUpdates===false?'':'checked'}><span>Text me updates about this request.</span></label>
+        <label class="check-row"><input id="mobileTextUpdates" type="checkbox" checked><span>Text me updates about this request.</span></label>
         <p class="small">We will only use text updates for this request unless you ask to receive other updates later.</p>
       </div>
       <div><label>Anything else?</label><textarea id="mobileNotes" placeholder="Tell us quantities, scents, questions, or what you are almost out of."></textarea></div>
@@ -1998,6 +2008,7 @@ function submitMobileRefillRequest(){
     textUpdateStatus:'Text follow-up needed',
     scheduled:false,
     delivered:false,
+    orderCompleted:false,
     timing:document.getElementById('mobileTiming')?.value.trim() || '',
     products:selectedProducts,
     containers:document.getElementById('mobileContainers')?.value.trim() || '',
@@ -2008,6 +2019,9 @@ function submitMobileRefillRequest(){
   rememberCustomerProfile(request);
   const requests=getMobileRefillRequests();
   requests.unshift(request);
+  saveMobileRefillRequests(requests);
+  const ownerSmsHref=ownerSmsHrefForRequest(request);
+  if(ownerSmsHref) request.textUpdateStatus='Owner text opened from customer request';
   saveMobileRefillRequests(requests);
   setTitle('Request Sent');
   app(`<section class="hero">
@@ -2024,7 +2038,9 @@ function submitMobileRefillRequest(){
     </div>
     <div class="spacer"></div>
     <button class="primary" onclick="showHome()">Back to shop</button>
+    ${ownerSmsHref ? '<p class="small">Your phone should open a text to Common Good. Send it to finish notifying us.</p>' : '<p class="small">Request saved. Common Good will review the request log.</p>'}
   </section>`);
+  if(ownerSmsHref) window.location.href=ownerSmsHref;
 }
 
 function showRefillProducts(){
@@ -2456,6 +2472,10 @@ function updateMobileRequestFlag(index, field){
   if(!requests[index]) return;
   requests[index][field]=Boolean(document.getElementById(`request${field}${index}`)?.checked);
   if(field==='delivered' && requests[index].delivered) requests[index].scheduled=true;
+  if(field==='orderCompleted' && requests[index].orderCompleted){
+    requests[index].scheduled=true;
+    requests[index].delivered=true;
+  }
   requests[index].status=mobileRequestStatusLabel(requests[index]);
   requests[index].updatedAt=new Date().toISOString();
   saveMobileRefillRequests(requests);
@@ -2480,7 +2500,7 @@ function deleteMobileRequest(index){
 function mobileRequestCopyText(request){
   const products=(request.products||[]).map(p=>p.name).join(', ') || 'See notes';
   const recipients=ownerTextContacts().map(contact=>`${contact.name}${contact.phone ? ` (${contact.phone})` : ''}`).join(', ');
-  return `Pantry Ready request\nName: ${request.name}\nPhone: ${request.phone}\nText recipients: ${recipients}\nType: ${request.requestType}\nDelivery fee: ${request.deliveryFee || 'Unknown'}\nScheduled: ${request.scheduled ? 'Yes' : 'No'}\nDelivered: ${request.delivered ? 'Yes' : 'No'}\nTiming: ${request.timing || 'Flexible'}\nProducts: ${products}\nPackaging/add-ons: ${request.containers || ''}\nLocation: ${request.location || ''}\nNotes: ${request.notes || ''}`;
+  return `Pantry Ready request\nName: ${request.name}\nPhone: ${request.phone}\nText recipients: ${recipients}\nType: ${request.requestType}\nDelivery fee: ${request.deliveryFee || 'Unknown'}\nScheduled: ${request.scheduled ? 'Yes' : 'No'}\nDelivered: ${request.delivered ? 'Yes' : 'No'}\nOrder completed: ${request.orderCompleted ? 'Yes' : 'No'}\nTiming: ${request.timing || 'Flexible'}\nProducts: ${products}\nPackaging/add-ons: ${request.containers || ''}\nLocation: ${request.location || ''}\nNotes: ${request.notes || ''}`;
 }
 function copyMobileRequest(index){
   const request=getMobileRefillRequests()[index];
@@ -2798,10 +2818,10 @@ function showAdmin(tab='dashboard'){
     const revenue=sales.reduce((s,x)=>s+x.total,0);
     const counted=sales.filter(s=>saleEnteredAmount(s)!==null).length;
     body=`<div class="grid grid-3">
-      <div class="card"><div class="small">Recorded sales</div><div class="price">${sales.length}</div></div>
-      <div class="card"><div class="small">Revenue</div><div class="price">${money(revenue)}</div></div>
-      <div class="card"><div class="small">Counted payments</div><div class="price">${counted}</div></div>
-      <div class="card"><div class="small">Open Pantry Ready requests</div><div class="price">${openRequests}</div></div>
+      <button class="card dashboard-card" type="button" onclick="showAdmin('sales')"><div class="small">Recorded sales</div><div class="price">${sales.length}</div></button>
+      <button class="card dashboard-card" type="button" onclick="showAdmin('sales')"><div class="small">Revenue</div><div class="price">${money(revenue)}</div></button>
+      <button class="card dashboard-card" type="button" onclick="showAdmin('sales')"><div class="small">Counted payments</div><div class="price">${counted}</div></button>
+      <button class="card dashboard-card" type="button" onclick="showAdmin('requests')"><div class="small">Open Pantry Ready requests</div><div class="price">${openRequests}</div></button>
     </div>`;
   }
   if(tab==='sales'){
@@ -2860,6 +2880,7 @@ function showAdmin(tab='dashboard'){
     const openCount=requests.filter(mobileRequestOpen).length;
     const scheduledCount=requests.filter(request=>request.scheduled && !request.delivered).length;
     const deliveredCount=requests.filter(request=>request.delivered).length;
+    const completedCount=requests.filter(request=>request.orderCompleted || request.status==='Completed').length;
     const missingOwnerPhones=ownerTextContacts().filter(contact=>!normalizePhone(contact.phone)).map(contact=>contact.name);
     body=`<section class="card"><h2>Pantry Ready Requests</h2>
       <div class="notice">The customer QR/magnet should lead directly to the Request page. New requests are stored here and can be sent by text to the owner phones saved in Settings.</div>
@@ -2870,6 +2891,7 @@ function showAdmin(tab='dashboard'){
         <div class="summary"><strong>Open requests</strong><div class="price">${openCount}</div></div>
         <div class="summary"><strong>Scheduled</strong><div class="price">${scheduledCount}</div></div>
         <div class="summary"><strong>Delivered</strong><div class="price">${deliveredCount}</div></div>
+        <div class="summary"><strong>Completed</strong><div class="price">${completedCount}</div></div>
         <div class="summary"><strong>Delivery fee</strong><p class="small">Unknown. Confirm before scheduling.</p></div>
         <div class="summary"><strong>Text alerts</strong><p class="small">Use the text buttons on each request to notify Alaina and Kaelea. Customer updates are tracked per request.</p></div>
       </div>
@@ -2902,6 +2924,7 @@ function showAdmin(tab='dashboard'){
               <strong>Request log</strong>
               <label class="check-row"><input id="requestscheduled${i}" type="checkbox" ${request.scheduled?'checked':''} onchange="updateMobileRequestFlag(${i},'scheduled')"><span>Scheduled</span></label>
               <label class="check-row"><input id="requestdelivered${i}" type="checkbox" ${request.delivered?'checked':''} onchange="updateMobileRequestFlag(${i},'delivered')"><span>Delivered</span></label>
+              <label class="check-row"><input id="requestorderCompleted${i}" type="checkbox" ${request.orderCompleted?'checked':''} onchange="updateMobileRequestFlag(${i},'orderCompleted')"><span>Order completed</span></label>
             </div>
             <div><label>Owner notes</label><textarea id="requestOwnerNotes${i}" onblur="updateMobileRequestOwnerNotes(${i})" placeholder="Follow-up, quote, delivery plan, market pickup notes...">${escapeHTML(request.ownerNotes || '')}</textarea></div>
           </div>

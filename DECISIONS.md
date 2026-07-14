@@ -104,9 +104,11 @@
 - Pantry Ready requests should show that the delivery fee is unknown until Common Good confirms scheduling.
 - Pantry Ready requests should text both Alaina and Kaelea, and also land in the backend request log.
 - Pantry Ready request forms should ask whether the customer wants text updates. The current static app records the opt-in and provides owner text links; a hosted version needs an SMS provider before sending automatic texts.
+- Customer-facing Pantry Ready Submit Request should save the request to the owner log and open one text addressed to both saved owner numbers.
 - If a customer has used Pantry Ready delivery from the same device before, their delivery/address notes should prefill so repeat requests are faster.
 - Owner login password changed to `Refillery2026!`; the app should remember owner access on the same device for 90 days. A hosted version should replace this with real authentication.
 - Backend Pantry Ready request log should include simple checkmarks for Scheduled and Delivered.
+- Backend Pantry Ready request log should also include an Order completed checkbox for final close-out after the request has been fully handled.
 - Customer-container refill requests may be a future or exception workflow because they require bringing more inventory and reduce the chance for "since you are here" add-ons.
 - Winter market workflow may rely on prepackaged mason jars / Pantry Ready stock first because customers may not know to bring jars or containers yet.
 
