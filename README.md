@@ -1,14 +1,14 @@
-# Common Good App Prototype
+# Common Good App
 
-This is a clickable, browser-based prototype for the Common Good refillery.
+This is a browser-based Common Good refillery app for customer shopping, Pantry Ready requests, owner product setup, COGS tracking, sales records, and marketing planning.
 
 ## Open it
 
 Open `index.html` in a modern browser.
 
-For the owner area, use the prototype password:
+For the owner area, use the owner password:
 
-`common`
+`Refillery2026!`
 
 ## Included
 
@@ -18,10 +18,12 @@ For the owner area, use the prototype password:
 - Cash, check, and Venmo instruction screens
 - Saved customer containers
 - Owner dashboard
-- Product notebook shell
-- Inventory shell
-- AI Marketing Studio shell
+- Product notebook with COGS, recipes, pricing, packaging, labels, marketing notes, and batch records
+- Inventory planning area
+- AI Marketing Studio and post bank
+- Pantry Ready request log with owner text follow-up links
+- Owner settings, data backup, and 90-day remembered owner access
 
 ## Important
 
-This is a prototype, not production software. It does not yet include secure authentication, a real payment processor, a database, legal compliance review, scale or printer integration, or real AI image generation.
+This static version stores owner data in the browser. Use Owner Workroom > Settings > Data Backup after entering data you care about. A future hosted version should add secure accounts, a shared database, automated text messaging, scale/printer integrations, and any required legal/compliance review.
