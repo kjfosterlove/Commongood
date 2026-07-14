@@ -19,7 +19,7 @@
 - The app should be a PWA/mobile-friendly web app first.
 - Sales tax should be configurable by location, with Alvo, Nebraska as the initial base location.
 - Customer-facing prices should include sales tax rather than showing tax as a separate checkout line.
-- The prototype should use an 8% baked-in sales tax assumption for Alvo, Nebraska until exact rates are verified.
+- The current app should use an 8% baked-in sales tax assumption for Alvo, Nebraska until exact rates are verified.
 - Sales tax should apply to all current product categories because Common Good is not primarily selling food items.
 - Supported refill weight units should include ounces and grams.
 - Cash payments will not provide change.
@@ -45,7 +45,7 @@
 - Marketing Studio should maintain product-specific social profiles for every product in the Products list, not only Room & Linen Spray, so buying lenses change copy and image direction across the full catalog.
 - Product setup should eventually move to one owner intake screen with all relevant fields: product name, department/category, active/inactive status, materials, recipe, labor, waste, packaging, label assets, suggested price, actual price, refill format, Pantry Ready format, locations, inventory split, and social media aspects. New products should stay inactive until the owner marks them live.
 - Product details should be entered once and auto-populate customer shopping screens, Product Notebook, COGS/pricing, inventory, location availability, and Marketing Studio.
-- Prototype Add Product screen should save owner-created products locally, show inactive products only in the Workroom, and show active products on customer-facing refill, Pantry Ready, and request screens based on selected formats.
+- Add Product should save owner-created products locally, show inactive products only in the Workroom, and show active products on customer-facing refill, Pantry Ready, and request screens based on selected formats.
 - Product Notebook tabs should be editable so owners can update status, formats, locations, recipes, COGS, prices, packaging, labels, and marketing notes as supply costs and availability change.
 - COGS calculator should pull recipe lines into costable ingredient rows. Each row should capture recipe amount/unit, purchased container cost, purchased container size/unit, supplier, purchase link, and notes.
 - COGS should also capture time to produce, labor rate/cost, packaging cost, label cost, optional packaging photo/link, waste buffer, and target margin.
@@ -61,7 +61,7 @@
 - Owner reporting should support Common Good overall data and location-specific splits.
 - Owner reporting should support date-range filtering and filters such as location, product, product format, and payment method.
 - Locations should be owner-managed. Adding a location should capture relevant settings such as products offered and sales tax rate.
-- Saved containers can remain device-only for the prototype.
+- Saved containers can remain device-only for the current static app.
 - Later customer accounts should be phone-number based rather than email based.
 - Basic jars such as mason and Ball jars should be tracked as inventory counts.
 - Unique glass pieces should have their own IDs.
@@ -72,7 +72,7 @@
 
 - Cash totals may be rounded down to the nearest dollar for the customer, but the business needs a pricing or margin buffer elsewhere to compensate.
 - Payment codes should be short, memorable, and brand-appropriate, but not necessarily obviously biblical to customers.
-- Venmo handle and QR code are not final yet; use a temporary placeholder only in prototype screens.
+- Venmo handle and QR code are not final yet; the app should ask the owner to enter verified business Venmo details before using Venmo checkout.
 - Tare and filled weights may begin as manual entry while the scale workflow is still being decided.
 - Sales Ledger discrepancies are recorded for balancing and review, not necessarily for customer follow-up or enforcement.
 - Pantry Ready packaging and labor should not appear as a customer-facing surcharge; customers should see a single Pantry Ready price.
@@ -102,7 +102,10 @@
 - Mobile requests should primarily be Pantry Ready requests, not customer-container refills. This makes delivery easier because Common Good can keep 2-3 of each Pantry Ready item in a trunk box and fulfill without bringing the full refill setup.
 - The customer-facing QR/magnet should simply open the Pantry Ready request page. That form should collect name, phone, Pantry Ready products, packaging/add-on notes, timing, and delivery or market pickup notes.
 - Pantry Ready requests should show that the delivery fee is unknown until Common Good confirms scheduling.
-- Production Pantry Ready requests should text both Alaina and Kaelea, and also land in the backend request log.
+- Pantry Ready requests should text both Alaina and Kaelea, and also land in the backend request log.
+- Pantry Ready request forms should ask whether the customer wants text updates. The current static app records the opt-in and provides owner text links; a hosted version needs an SMS provider before sending automatic texts.
+- If a customer has used Pantry Ready delivery from the same device before, their delivery/address notes should prefill so repeat requests are faster.
+- Owner login password changed to `Refillery2026!`; the app should remember owner access on the same device for 90 days. A hosted version should replace this with real authentication.
 - Backend Pantry Ready request log should include simple checkmarks for Scheduled and Delivered.
 - Customer-container refill requests may be a future or exception workflow because they require bringing more inventory and reduce the chance for "since you are here" add-ons.
 - Winter market workflow may rely on prepackaged mason jars / Pantry Ready stock first because customers may not know to bring jars or containers yet.
@@ -118,7 +121,7 @@
 - Waste percentage assumptions
 - Lot and expiration requirements by product type
 - Market inventory transfer process
-- Exact production text delivery method for Pantry Ready requests
+- Exact automated text delivery method for Pantry Ready requests
 - Roles needed at launch
 - Location setup fields and which settings inherit from Common Good overall versus location-specific overrides
 - Reporting presets for date ranges, location splits, product splits, payment method splits, variance, and donations
@@ -132,14 +135,16 @@
 - Whether posting/scheduling is inside the app or exported
 - How similar is too similar for marketing concept reuse
 - Exact target audience segments and approved brand voice rules
-- Whether the production AI studio connects to live Instagram/TikTok trend and audio data or keeps trend checks as a manual publishing step
+- Whether the hosted AI studio connects to live Instagram/TikTok trend and audio data or keeps trend checks as a manual publishing step
 - Advertising Director should decide whether paid ads are appropriate before recommending spend. Paid ads should amplify proven organic traction, not rescue weak products, weak messaging, or unclear positioning.
 - Campaign strategy should choose one primary business goal, consider audience mindset and customer awareness stage, recommend organic channels first when appropriate, and define budget, testing, success metrics, and kill rules.
 
 ### Technology
-- Final production stack
+- Final hosted app stack
 - Hosting
 - Database
 - Authentication provider
 - Payment processor for future cards
-- Prototype owner data is stored in this browser for now. Use Owner Workroom > Settings > Data Backup after meaningful COGS, recipe, product, batch, request, sales, or marketing entry. Production needs a real database/cloud sync before relying on it as the permanent business record.
+- Owner data is stored in this browser for now. Use Owner Workroom > Settings > Data Backup after meaningful COGS, recipe, product, batch, request, sales, or marketing entry. A hosted version needs a real database/cloud sync before relying on it as the permanent business record.
+- Add Reports to the app: date range, product, location, payment method, Pantry Ready, variance, discrepancies, donations, and inventory reporting.
+- Build full inventory workflow: raw ingredients, packaging, finished goods, Pantry Ready, refill stock, trunk/market allocations, reorder points, and unique glass.
