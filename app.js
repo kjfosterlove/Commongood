@@ -155,6 +155,8 @@ function glassPhoto(g){
 function glassMeta(g){ return `Tare ${g.tare} oz · ${money(g.price)} ${sourceBadge('assumed')}`; }
 function getSales(){ return JSON.parse(localStorage.getItem('cg_sales')||'[]'); }
 function saveSales(sales){ localStorage.setItem('cg_sales',JSON.stringify(sales)); }
+function getInventoryItems(){ return JSON.parse(localStorage.getItem('cg_inventory_items')||'[]'); }
+function saveInventoryItems(items){ localStorage.setItem('cg_inventory_items',JSON.stringify(items)); }
 function getMobileRefillRequests(){ return JSON.parse(localStorage.getItem('cg_mobile_refill_requests')||'[]'); }
 function saveMobileRefillRequests(requests){ localStorage.setItem('cg_mobile_refill_requests',JSON.stringify(requests)); }
 function getOwnerSettings(){ return JSON.parse(localStorage.getItem('cg_owner_settings')||'{}'); }
@@ -175,24 +177,28 @@ function saveOwnerSettingsFromForm(){
 function ownerTextContacts(){
   const settings=getOwnerSettings();
   return [
-    {name:'Alaina',phone:settings.alainaPhone || ''},
-    {name:'Kaelea',phone:settings.kaeleaPhone || ''}
+    {name:'Kaelea',phone:settings.kaeleaPhone || ''},
+    {name:'Alaina',phone:settings.alainaPhone || ''}
   ];
 }
 function smsHref(phone, body){
   const clean=normalizePhone(phone);
-  return clean ? `sms:${clean}?&body=${encodeURIComponent(body)}` : '';
+  return clean ? `sms:${clean}?body=${encodeURIComponent(body)}` : '';
 }
 function ownerSmsHrefForRequest(request){
   const numbers=ownerTextContacts().map(contact=>normalizePhone(contact.phone)).filter(Boolean);
   if(!numbers.length) return '';
-  return `sms:${numbers.join(',')}?&body=${encodeURIComponent(mobileRequestCopyText(request))}`;
+  return `sms:${numbers.join(',')}?body=${encodeURIComponent(mobileRequestCopyText(request))}`;
 }
 function ownerTextLinksForRequest(request){
   const href=ownerSmsHrefForRequest(request);
   const missing=ownerTextContacts().filter(contact=>!normalizePhone(contact.phone)).map(contact=>contact.name);
-  if(href && !missing.length) return `<a class="secondary text-link" href="${href}">Text Alaina and Kaelea</a>`;
-  if(href) return `<a class="secondary text-link" href="${href}">Text saved owner numbers</a><span class="small">${missing.join(' and ')} phone needed in Settings</span>`;
+  const individual=ownerTextContacts().map(contact=>{
+    const contactHref=smsHref(contact.phone, mobileRequestCopyText(request));
+    return contactHref ? `<a class="quiet text-link" href="${contactHref}">Text ${contact.name}</a>` : '';
+  }).join('');
+  if(href && !missing.length) return `<a class="secondary text-link" href="${href}">Text Kaelea and Alaina</a>${individual}<p class="small">If your phone only opens one recipient, use the individual text buttons too.</p>`;
+  if(href) return `<a class="secondary text-link" href="${href}">Text saved owner numbers</a>${individual}<span class="small">${missing.join(' and ')} phone needed in Settings</span>`;
   return '<span class="small">Owner phone numbers needed in Settings before text links are ready.</span>';
 }
 function getCustomerProfiles(){ return JSON.parse(localStorage.getItem('cg_customer_profiles')||'{}'); }
@@ -285,6 +291,7 @@ const backupKeys=[
   'cg_owner_products',
   'cg_product_overrides',
   'cg_owner_settings',
+  'cg_inventory_items',
   'cg_sales',
   'cg_mobile_refill_requests',
   'cg_customer_profiles',
@@ -2003,7 +2010,7 @@ function submitMobileRefillRequest(){
     phone,
     requestType:document.getElementById('mobileType')?.value || 'Pantry Ready request',
     deliveryFee:'Unknown',
-    textRecipients:['Alaina','Kaelea'],
+    textRecipients:['Kaelea','Alaina'],
     textUpdates:document.getElementById('mobileTextUpdates')?.checked || false,
     textUpdateStatus:'Text follow-up needed',
     scheduled:false,
@@ -2038,7 +2045,7 @@ function submitMobileRefillRequest(){
     </div>
     <div class="spacer"></div>
     <button class="primary" onclick="showHome()">Back to shop</button>
-    ${ownerSmsHref ? '<p class="small">Your phone should open a text to Common Good. Send it to finish notifying us.</p>' : '<p class="small">Request saved. Common Good will review the request log.</p>'}
+    ${ownerSmsHref ? '<p class="small">Your phone should open a text to Common Good. Please make sure both Kaelea and Alaina are listed before sending.</p>' : '<p class="small">Request saved. Common Good will review the request log.</p>'}
   </section>`);
   if(ownerSmsHref) window.location.href=ownerSmsHref;
 }
@@ -2797,6 +2804,83 @@ function saveNewProduct(){
   showAdmin('products');
 }
 
+function openProductNotebook(productId){
+  window.pendingNotebookProductId=productId;
+  showAdmin('product');
+}
+
+function inventoryAmount(value){
+  const number=Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+function inventoryDifference(item){
+  const planned=inventoryAmount(item.plannedQuantity);
+  const actual=inventoryAmount(item.quantity) ?? 0;
+  if(planned===null) return null;
+  return actual-planned;
+}
+function inventoryAmountLabel(value){
+  const number=inventoryAmount(value);
+  if(number===null) return 'Not planned';
+  return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/\.?0+$/,'');
+}
+function inventoryStatusBadge(item){
+  const difference=inventoryDifference(item);
+  if(difference===null) return '<span class="source-badge not-counted">Not planned</span>';
+  if(Math.abs(difference)<0.005) return '<span class="source-badge matched">On plan</span>';
+  if(difference<0) return '<span class="source-badge short">Short</span>';
+  return '<span class="source-badge over">Over</span>';
+}
+
+function saveInventoryItem(){
+  const name=document.getElementById('inventoryName')?.value.trim();
+  const message=document.getElementById('inventoryMessage');
+  if(!name){
+    if(message) message.innerHTML='<div class="notice warning">Add an item name first.</div>';
+    return;
+  }
+  const item={
+    id:`inv-${Date.now()}`,
+    name,
+    category:document.getElementById('inventoryCategory')?.value || 'Raw ingredient',
+    plannedQuantity:numberOrNull(document.getElementById('inventoryPlannedQuantity')?.value),
+    quantity:numberOrNull(document.getElementById('inventoryActualQuantity')?.value) ?? 0,
+    unit:document.getElementById('inventoryUnit')?.value.trim() || '',
+    reorderPoint:numberOrNull(document.getElementById('inventoryReorder')?.value),
+    location:document.getElementById('inventoryLocation')?.value.trim() || '',
+    supplier:document.getElementById('inventorySupplier')?.value.trim() || '',
+    link:document.getElementById('inventoryLink')?.value.trim() || '',
+    notes:document.getElementById('inventoryNotes')?.value.trim() || '',
+    updatedAt:new Date().toISOString()
+  };
+  const items=getInventoryItems();
+  items.unshift(item);
+  saveInventoryItems(items);
+  showAdmin('inventory');
+}
+
+function updateInventoryItem(index, field){
+  const items=getInventoryItems();
+  if(!items[index]) return;
+  const input=document.getElementById(`inventory${field}${index}`);
+  if(!input) return;
+  const numeric=['plannedQuantity','quantity','reorderPoint'].includes(field);
+  items[index][field]=numeric ? numberOrNull(input.value) : input.value.trim();
+  items[index].updatedAt=new Date().toISOString();
+  saveInventoryItems(items);
+  if(['plannedQuantity','quantity'].includes(field)) showAdmin('inventory');
+}
+
+function deleteInventoryItem(index){
+  const items=getInventoryItems();
+  const item=items[index];
+  if(!item) return;
+  if(!confirm(`Delete inventory item ${item.name}?`)) return;
+  items.splice(index,1);
+  saveInventoryItems(items);
+  showAdmin('inventory');
+}
+
 function showAdmin(tab='dashboard'){
   setTitle('Common Good Workroom');
   const tabs=`<div class="tabs">
@@ -2893,7 +2977,7 @@ function showAdmin(tab='dashboard'){
         <div class="summary"><strong>Delivered</strong><div class="price">${deliveredCount}</div></div>
         <div class="summary"><strong>Completed</strong><div class="price">${completedCount}</div></div>
         <div class="summary"><strong>Delivery fee</strong><p class="small">Unknown. Confirm before scheduling.</p></div>
-        <div class="summary"><strong>Text alerts</strong><p class="small">Use the text buttons on each request to notify Alaina and Kaelea. Customer updates are tracked per request.</p></div>
+        <div class="summary"><strong>Text alerts</strong><p class="small">Use the text buttons on each request to notify Kaelea and Alaina. Customer updates are tracked per request.</p></div>
       </div>
       <div class="spacer"></div>
       ${requests.length?`<div class="request-list">${requests.map((request,i)=>{
@@ -2939,7 +3023,7 @@ function showAdmin(tab='dashboard'){
       <button class="primary" onclick="showAdmin('addProduct')">Add product</button>
       <div class="spacer"></div>
       <div class="table-wrap"><table><tr><th>Status</th><th>Product</th><th>Category</th><th>Refill</th><th>Pantry Ready</th><th>Refill model</th><th>Pantry model</th><th>Pricing source</th><th>COGS</th></tr>
-      ${products.map(p=>`<tr><td><span class="badge ${isProductActive(p)?'active':'inactive'}">${isProductActive(p)?'Active':'Inactive'}</span></td><td>${p.name}</td><td>${p.category}</td><td>${p.refill?money(p.pricePerUnit)+'/'+p.unit:'—'}</td><td>${p.pantry?pantryVariants(p).map(variant=>`${money(variant.price)} · ${variant.size}`).join('<br>'):'—'}</td><td>${p.refill?pricingModelLabel(p.refillPricingModel):'—'}</td><td>${p.pantry?pricingModelLabel(p.pantryPricingModel):'—'}</td><td>${sourceBadge(productPricingSource(p))}</td><td>${sourceBadge(productCogsSource(p))}</td></tr>`).join('')}</table></div></section>`;
+      ${products.map(p=>`<tr><td><span class="badge ${isProductActive(p)?'active':'inactive'}">${isProductActive(p)?'Active':'Inactive'}</span></td><td><button class="link-button" type="button" onclick="openProductNotebook('${p.id}')">${p.name}</button></td><td>${p.category}</td><td>${p.refill?money(p.pricePerUnit)+'/'+p.unit:'—'}</td><td>${p.pantry?pantryVariants(p).map(variant=>`${money(variant.price)} · ${variant.size}`).join('<br>'):'—'}</td><td>${p.refill?pricingModelLabel(p.refillPricingModel):'—'}</td><td>${p.pantry?pricingModelLabel(p.pantryPricingModel):'—'}</td><td>${sourceBadge(productPricingSource(p))}</td><td>${sourceBadge(productCogsSource(p))}</td></tr>`).join('')}</table></div></section>`;
   }
   if(tab==='addProduct'){
     body=`<section class="card"><h2>Add Product</h2>
@@ -2984,8 +3068,53 @@ function showAdmin(tab='dashboard'){
       <div id="notebook"></div></section>`;
   }
   if(tab==='inventory'){
-    body=`<section class="card"><h2>Inventory</h2><p>This area will track raw ingredients, packaging, finished goods, Pantry Ready stock, refill-bin quantities, glass pieces, reorder points, and vendor-market allocations.</p>
-    <button class="primary">Add inventory item</button></section>`;
+    const items=getInventoryItems();
+    body=`<section class="card"><h2>Inventory</h2>
+      <div class="notice">Track planned amounts against actual products on hand for raw ingredients, packaging, finished goods, Pantry Ready stock, refill-bin quantities, glass pieces, trunk boxes, and market allocations.</div>
+      <div class="spacer"></div>
+      <details class="summary" open>
+        <summary>Add inventory item</summary>
+        <div class="form-grid">
+          <div class="grid grid-3">
+            <div><label>Item name</label><input id="inventoryName" placeholder="Example: Baking soda, 8 oz amber bottle, Tallow Lotion 2 oz"></div>
+            <div><label>Category</label><select id="inventoryCategory"><option>Raw ingredient</option><option>Packaging</option><option>Label</option><option>Finished Pantry Ready</option><option>Refill bulk</option><option>Glass</option><option>Market stock</option><option>Trunk box</option><option>Other</option></select></div>
+            <div><label>Location</label><input id="inventoryLocation" placeholder="Common Good, trunk box, market tote..."></div>
+            <div><label>Planned amount</label><input id="inventoryPlannedQuantity" type="number" step=".01" placeholder="Target count or amount"></div>
+            <div><label>Actual products on hand</label><input id="inventoryActualQuantity" type="number" step=".01" placeholder="What is actually there"></div>
+            <div><label>Unit</label><input id="inventoryUnit" placeholder="oz, lb, each, bottles, jars"></div>
+            <div><label>Reorder point</label><input id="inventoryReorder" type="number" step=".01" placeholder="Optional"></div>
+          </div>
+          <div class="grid grid-2">
+            <div><label>Supplier / source</label><input id="inventorySupplier" placeholder="Azure, Costco, Uline, estate sale..."></div>
+            <div><label>Purchase link</label><input id="inventoryLink" placeholder="https://..."></div>
+          </div>
+          <div><label>Notes</label><textarea id="inventoryNotes" placeholder="Lot, expiration, jar lid type, scent, batch, reorder notes, allocation notes..."></textarea></div>
+          <button class="primary" type="button" onclick="saveInventoryItem()">Save inventory item</button>
+          <div id="inventoryMessage"></div>
+        </div>
+      </details>
+      <div class="spacer"></div>
+      ${items.length?`<div class="table-wrap"><table><tr><th>Item</th><th>Category</th><th>Planned</th><th>Actual</th><th>Unit</th><th>Difference</th><th>Status</th><th>Reorder</th><th>Location</th><th>Supplier</th><th>Notes</th><th></th></tr>
+        ${items.map((item,index)=>{
+          const difference=inventoryDifference(item);
+          const differenceLabel=difference===null?'Not planned':`${difference>0?'+':''}${inventoryAmountLabel(difference)}`;
+          return `<tr>
+          <td><input id="inventoryname${index}" value="${escapeHTML(item.name || '')}" onchange="updateInventoryItem(${index},'name')"></td>
+          <td><select id="inventorycategory${index}" onchange="updateInventoryItem(${index},'category')">${['Raw ingredient','Packaging','Label','Finished Pantry Ready','Refill bulk','Glass','Market stock','Trunk box','Other'].map(category=>`<option ${item.category===category?'selected':''}>${category}</option>`).join('')}</select></td>
+          <td><input id="inventoryplannedQuantity${index}" type="number" step=".01" value="${item.plannedQuantity ?? ''}" onchange="updateInventoryItem(${index},'plannedQuantity')"></td>
+          <td><input id="inventoryquantity${index}" type="number" step=".01" value="${item.quantity ?? ''}" onchange="updateInventoryItem(${index},'quantity')"></td>
+          <td><input id="inventoryunit${index}" value="${escapeHTML(item.unit || '')}" onchange="updateInventoryItem(${index},'unit')"></td>
+          <td>${escapeHTML(differenceLabel)}</td>
+          <td>${inventoryStatusBadge(item)}</td>
+          <td><input id="inventoryreorderPoint${index}" type="number" step=".01" value="${item.reorderPoint ?? ''}" onchange="updateInventoryItem(${index},'reorderPoint')"></td>
+          <td><input id="inventorylocation${index}" value="${escapeHTML(item.location || '')}" onchange="updateInventoryItem(${index},'location')"></td>
+          <td><input id="inventorysupplier${index}" value="${escapeHTML(item.supplier || '')}" onchange="updateInventoryItem(${index},'supplier')"></td>
+          <td><textarea id="inventorynotes${index}" onchange="updateInventoryItem(${index},'notes')">${escapeHTML(item.notes || '')}</textarea></td>
+          <td><button class="icon-button danger-icon" type="button" onclick="deleteInventoryItem(${index})">Del</button></td>
+        </tr>`;
+        }).join('')}
+      </table></div>`:'<p>No inventory items recorded yet.</p>'}
+    </section>`;
   }
   if(tab==='marketing'){
     body=`<section class="card"><h2>AI Marketing Studio</h2>
@@ -3050,7 +3179,7 @@ function showAdmin(tab='dashboard'){
         <ul>
           <li>Add Reports: sales by date range, product, location, payment method, Pantry Ready, variance, donations, and discrepancies.</li>
           <li>Build out Inventory: raw ingredients, packaging, finished goods, refill stock, trunk box, markets, reorder points, and one-of-a-kind glass.</li>
-          <li>Connect real text updates: customer request updates plus owner alerts for Alaina and Kaelea.</li>
+          <li>Connect real text updates: customer request updates plus owner alerts for Kaelea and Alaina.</li>
           <li>Owner security: replace device-remembered password access with real owner accounts when the app moves beyond static hosting.</li>
         </ul>
       </section>
@@ -3078,7 +3207,14 @@ function showAdmin(tab='dashboard'){
       </section>`;
   }
   app(tabs+body);
-  if(tab==='product') renderNotebook();
+  if(tab==='product'){
+    if(window.pendingNotebookProductId){
+      const select=document.getElementById('notebookProduct');
+      if(select) select.value=window.pendingNotebookProductId;
+      window.pendingNotebookProductId=null;
+    }
+    renderNotebook();
+  }
   if(tab==='marketing') renderPostKitBank();
 }
 

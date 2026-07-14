@@ -102,7 +102,7 @@
 - Mobile requests should primarily be Pantry Ready requests, not customer-container refills. This makes delivery easier because Common Good can keep 2-3 of each Pantry Ready item in a trunk box and fulfill without bringing the full refill setup.
 - The customer-facing QR/magnet should simply open the Pantry Ready request page. That form should collect name, phone, Pantry Ready products, packaging/add-on notes, timing, and delivery or market pickup notes.
 - Pantry Ready requests should show that the delivery fee is unknown until Common Good confirms scheduling.
-- Pantry Ready requests should text both Alaina and Kaelea, and also land in the backend request log.
+- Pantry Ready requests should text both Kaelea and Alaina, and also land in the backend request log.
 - Pantry Ready request forms should ask whether the customer wants text updates. The current static app records the opt-in and provides owner text links; a hosted version needs an SMS provider before sending automatic texts.
 - Customer-facing Pantry Ready Submit Request should save the request to the owner log and open one text addressed to both saved owner numbers.
 - If a customer has used Pantry Ready delivery from the same device before, their delivery/address notes should prefill so repeat requests are faster.
@@ -150,3 +150,4 @@
 - Owner data is stored in this browser for now. Use Owner Workroom > Settings > Data Backup after meaningful COGS, recipe, product, batch, request, sales, or marketing entry. A hosted version needs a real database/cloud sync before relying on it as the permanent business record.
 - Add Reports to the app: date range, product, location, payment method, Pantry Ready, variance, discrepancies, donations, and inventory reporting.
 - Build full inventory workflow: raw ingredients, packaging, finished goods, Pantry Ready, refill stock, trunk/market allocations, reorder points, and unique glass.
+- Current Inventory tab supports adding, editing, and deleting inventory items with category, planned amount, actual products on hand, unit, difference/status, reorder point, location, supplier, purchase link, and notes.

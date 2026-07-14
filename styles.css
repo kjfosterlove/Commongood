@@ -142,6 +142,15 @@ p { line-height: 1.45; }
 .secondary { background: var(--cream); color: var(--ink); border-color: var(--line); }
 .quiet { background: transparent; color: var(--olive); border-color: var(--line); }
 .danger { background: var(--danger); color: white; }
+.link-button {
+  background: transparent;
+  border: 0;
+  color: var(--olive);
+  font-weight: 850;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+}
 .full { width: 100%; }
 .button-row {
   display: flex;
