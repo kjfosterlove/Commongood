@@ -21,6 +21,8 @@
 - Supported refill weight units should include ounces and grams.
 - Cash payments will not provide change.
 - Each checkout should generate an easy-to-read payment passcode that links the cart to the payment envelope, check memo, or Venmo description.
+- The app does not need a payment processor while Common Good accepts only cash, check, and Venmo without automatic payment confirmation.
+- Sales should be recorded in an internal ledger with expected amount, entered/found amount, variance, and status.
 
 ## Working assumptions
 
@@ -28,6 +30,7 @@
 - Payment passcodes should be short, memorable, and brand-appropriate. A biblically related word or phrase set is acceptable if it remains easy for customers to write accurately.
 - Venmo handle and QR code are not final yet; use a temporary placeholder only in prototype screens.
 - Tare and filled weights may begin as manual entry while the scale workflow is still being decided.
+- Sales Ledger discrepancies are recorded for balancing and review, not necessarily for customer follow-up or enforcement.
 
 ## Still to decide
 
