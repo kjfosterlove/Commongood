@@ -21,6 +21,7 @@
 - Customer-facing prices should include sales tax rather than showing tax as a separate checkout line.
 - The current app should use an 8% baked-in sales tax assumption for Alvo, Nebraska until exact rates are verified.
 - Sales tax should apply to all current product categories because Common Good is not primarily selling food items.
+- Initial location focus is Pantry Ready delivery and markets. The first farmstand option fell through, so farmstand setup should not be treated as the launch workflow.
 - Supported refill weight units should include ounces and grams.
 - Cash payments will not provide change.
 - Each checkout should generate an easy-to-read payment code that links the cart to the payment envelope, check memo, or Venmo description.
@@ -51,6 +52,7 @@
 - Owner forms should favor fewer fields with hover help. Fields that do not drive current calculations, reports, checkout, stickers, inventory alerts, or customer-facing output should be hidden until they have a real use.
 - COGS calculator should pull recipe lines into costable ingredient rows. Each row should capture recipe amount/unit, purchased container cost, purchased container size/unit, supplier, purchase link, and notes.
 - COGS should also capture time to produce, labor rate/cost, packaging cost, label cost, optional packaging photo/link, waste buffer, and target margin.
+- The standard target margin should default to 0.6 / 60%, but remain editable per product or Pantry Ready format when a product needs a higher or lower margin.
 - COGS should be understandable as both refill cost per unit and Pantry Ready cost per package, since refill pricing is usually per ounce/gram and Pantry Ready pricing is usually per finished jar, bottle, pouch, bar, or set.
 - Formula-driven values, such as labor cost calculated from production time and hourly rate, should display as read-only calculated results rather than editable fields.
 - Batch records should capture date, yield, bulk refill amount, Pantry Ready count, notes, and the calculated COGS basis used at the time.
@@ -64,6 +66,7 @@
 - Owner reporting should support Common Good overall data and location-specific splits.
 - Owner reporting should support date-range filtering and filters such as location, product, product format, and payment method.
 - Locations should be owner-managed. Adding a location should capture relevant settings such as products offered and sales tax rate.
+- Settings should be the source of truth for owner-managed locations. Product Notebook should choose product availability from those saved locations through a dropdown-style picker, with an Other option for one-off entries.
 - Saved containers can remain device-only for the current static app.
 - Later customer accounts should be phone-number based rather than email based.
 - Basic jars such as mason and Ball jars should be tracked as inventory counts.

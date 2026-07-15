@@ -548,6 +548,51 @@ p { line-height: 1.45; }
 
 .form-grid { display: grid; gap: 12px; }
 label { font-size: 13px; font-weight: 800; color: #5f543d; display: block; margin-bottom: 5px; }
+.location-picker {
+  display: grid;
+  gap: 10px;
+}
+.location-picker-row {
+  align-items: end;
+}
+.location-other {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.location-other[hidden] {
+  display: none;
+}
+.location-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.location-chip {
+  align-items: center;
+  background: #fffdf8;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 7px;
+  padding: 7px 9px 7px 11px;
+}
+.location-chip small {
+  color: #6d624f;
+  font-size: 11px;
+}
+.location-chip button {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--olive);
+  cursor: pointer;
+  font-weight: 900;
+  height: 24px;
+  line-height: 1;
+  width: 24px;
+}
 .help-dot {
   align-items: center;
   background: var(--cream);

@@ -35,6 +35,12 @@ const ownerPassword='Refillery2026!';
 const ownerSessionDays=90;
 let adminUnlocked = ownerSessionActive();
 const defaultHourlyLaborRate=30;
+const defaultTargetMargin=0.6;
+const defaultOwnerLocations=[
+  {id:'delivery',name:'Delivery',type:'Pantry Ready delivery',taxRate:'8%',details:'Primary first workflow. Delivery fee is unknown until Common Good confirms scheduling.',active:true},
+  {id:'markets',name:'Markets',type:'Vendor market',taxRate:'8%',details:'Market setup focused on Pantry Ready stock and easy add-on sales.',active:true},
+  {id:'alvo-ne',name:'Alvo, NE',type:'Base tax location',taxRate:'8%',details:'Original Alvo, Nebraska sales tax assumption until exact rates are verified.',active:true}
+];
 
 function money(n){ return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n); }
 function escapeHTML(value){
@@ -140,6 +146,99 @@ function numberOrNull(value){
   const number=parseFloat(value);
   return Number.isFinite(number) ? number : null;
 }
+function productLocationNames(value){
+  if(Array.isArray(value)) return value.map(item=>String(item || '').trim()).filter(Boolean);
+  return String(value || '').split(',').map(item=>item.trim()).filter(Boolean);
+}
+function locationSlug(name){
+  return String(name || 'location').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || `location-${Date.now()}`;
+}
+function getOwnerLocations(){
+  const settings=getOwnerSettings();
+  const saved=Array.isArray(settings.locations) ? settings.locations.filter(location=>location && location.name) : [];
+  return saved.length ? saved : defaultOwnerLocations;
+}
+function saveOwnerLocations(locations){
+  const settings=getOwnerSettings();
+  saveOwnerSettings({...settings,locations});
+}
+function ownerLocationOptionsHTML(){
+  return getOwnerLocations()
+    .filter(location=>location.active !== false)
+    .map(location=>`<option value="${escapeHTML(location.name)}">${escapeHTML(location.name)}</option>`)
+    .join('');
+}
+function renderLocationChipList(values,prefix){
+  if(!values.length) return '<p class="small">No locations selected yet.</p>';
+  const locationDetails=getOwnerLocations();
+  return values.map((name,index)=>{
+    const location=locationDetails.find(item=>item.name===name);
+    const detail=location ? ` · ${location.type || 'Location'} · Tax ${location.taxRate || 'Not set'}` : '';
+    return `<span class="location-chip">${escapeHTML(name)}<small>${escapeHTML(detail)}</small><button type="button" aria-label="Remove ${escapeHTML(name)}" onclick="removeProductLocation('${prefix}',${index})">×</button></span>`;
+  }).join('');
+}
+function renderLocationPicker(prefix,current,label='Locations offered'){
+  const values=productLocationNames(current);
+  return `<div class="location-picker">
+    <label>${label} ${help('Choose from locations managed in Settings. Use Other for a one-off place that is not in the main location list yet.')}</label>
+    <div class="grid grid-3 location-picker-row">
+      <select id="${prefix}LocationSelect" onchange="toggleOtherLocationInput('${prefix}')">
+        <option value="">Choose location</option>
+        ${ownerLocationOptionsHTML()}
+        <option value="Other">Other</option>
+      </select>
+      <button class="secondary" type="button" onclick="addProductLocationFromDropdown('${prefix}')">Add location</button>
+    </div>
+    <div id="${prefix}OtherLocationRow" class="location-other" hidden>
+      <input id="${prefix}OtherLocation" placeholder="Type other location">
+      <button class="secondary" type="button" onclick="addOtherProductLocation('${prefix}')">Add other</button>
+    </div>
+    <input id="${prefix}Locations" type="hidden" value="${escapeHTML(values.join(', '))}">
+    <div id="${prefix}LocationList" class="location-chip-list">${renderLocationChipList(values,prefix)}</div>
+  </div>`;
+}
+function locationPickerValues(prefix){
+  return productLocationNames(document.getElementById(`${prefix}Locations`)?.value || '');
+}
+function setLocationPickerValues(prefix,values){
+  const clean=[...new Set(values.map(value=>String(value || '').trim()).filter(Boolean))];
+  const hidden=document.getElementById(`${prefix}Locations`);
+  const list=document.getElementById(`${prefix}LocationList`);
+  if(hidden) hidden.value=clean.join(', ');
+  if(list) list.innerHTML=renderLocationChipList(clean,prefix);
+}
+function toggleOtherLocationInput(prefix){
+  const select=document.getElementById(`${prefix}LocationSelect`);
+  const row=document.getElementById(`${prefix}OtherLocationRow`);
+  if(row) row.hidden=select?.value !== 'Other';
+}
+function addProductLocationFromDropdown(prefix){
+  const select=document.getElementById(`${prefix}LocationSelect`);
+  if(!select || !select.value) return;
+  if(select.value==='Other'){
+    toggleOtherLocationInput(prefix);
+    document.getElementById(`${prefix}OtherLocation`)?.focus();
+    return;
+  }
+  setLocationPickerValues(prefix,[...locationPickerValues(prefix),select.value]);
+  select.value='';
+}
+function addOtherProductLocation(prefix){
+  const input=document.getElementById(`${prefix}OtherLocation`);
+  const value=input?.value.trim();
+  if(!value) return;
+  setLocationPickerValues(prefix,[...locationPickerValues(prefix),value]);
+  input.value='';
+  const row=document.getElementById(`${prefix}OtherLocationRow`);
+  const select=document.getElementById(`${prefix}LocationSelect`);
+  if(row) row.hidden=true;
+  if(select) select.value='';
+}
+function removeProductLocation(prefix,index){
+  const values=locationPickerValues(prefix);
+  values.splice(index,1);
+  setLocationPickerValues(prefix,values);
+}
 function pricingModelLabel(model){
   if(model==='format-cogs') return 'Format COGS';
   if(model==='product-only') return 'Product only';
@@ -222,6 +321,9 @@ function starterExtraCategory(item){
 }
 function seedStarterExtrasIfNeeded(){
   if(localStorage.getItem('cg_seeded_starter_extras_v1')) return;
+  seedStarterExtras();
+}
+function seedStarterExtras(){
   const items=getInventoryItems();
   const existingIds=new Set(items.map(item=>item.id));
   const starterItems=glass
@@ -250,6 +352,11 @@ function seedStarterExtrasIfNeeded(){
   if(starterItems.length) saveInventoryItems([...starterItems,...items]);
   localStorage.setItem('cg_seeded_starter_extras_v1','true');
 }
+function restoreStarterExtras(){
+  localStorage.removeItem('cg_seeded_starter_extras_v1');
+  seedStarterExtrasIfNeeded();
+  showAdmin('inventory');
+}
 function getMobileRefillRequests(){ return JSON.parse(localStorage.getItem('cg_mobile_refill_requests')||'[]'); }
 function saveMobileRefillRequests(requests){ localStorage.setItem('cg_mobile_refill_requests',JSON.stringify(requests)); }
 function getOwnerSettings(){ return JSON.parse(localStorage.getItem('cg_owner_settings')||'{}'); }
@@ -268,6 +375,40 @@ function saveOwnerSettingsFromForm(){
   saveOwnerSettings(settings);
   const message=document.getElementById('settingsMessage');
   if(message) message.textContent='Settings saved.';
+  showAdmin('settings');
+}
+function saveOwnerLocationsFromForm(){
+  const current=getOwnerLocations();
+  const locations=current.map((location,index)=>({
+    id:location.id || locationSlug(document.getElementById(`ownerLocationName${index}`)?.value || location.name),
+    name:document.getElementById(`ownerLocationName${index}`)?.value.trim() || location.name,
+    type:document.getElementById(`ownerLocationType${index}`)?.value.trim() || '',
+    taxRate:document.getElementById(`ownerLocationTax${index}`)?.value.trim() || '',
+    details:document.getElementById(`ownerLocationDetails${index}`)?.value.trim() || '',
+    active:document.getElementById(`ownerLocationActive${index}`)?.checked !== false
+  })).filter(location=>location.name);
+  saveOwnerLocations(locations);
+  showAdmin('settings');
+}
+function addOwnerLocationFromForm(){
+  const name=document.getElementById('newOwnerLocationName')?.value.trim();
+  if(!name) return;
+  const locations=getOwnerLocations();
+  locations.push({
+    id:locationSlug(name),
+    name,
+    type:document.getElementById('newOwnerLocationType')?.value.trim() || '',
+    taxRate:document.getElementById('newOwnerLocationTax')?.value.trim() || '',
+    details:document.getElementById('newOwnerLocationDetails')?.value.trim() || '',
+    active:true
+  });
+  saveOwnerLocations(locations);
+  showAdmin('settings');
+}
+function deleteOwnerLocation(index){
+  const locations=getOwnerLocations();
+  locations.splice(index,1);
+  saveOwnerLocations(locations);
   showAdmin('settings');
 }
 function ownerTextContacts(){
@@ -2684,7 +2825,7 @@ function productCogsSummary(product){
   const pantryTotal=Number.isFinite(pantryPackageCount) && pantryPackageCount>0
     ? (bulkTotal+labor)+(packaging+label)*pantryPackageCount
     : bulkTotal+packaging+label+labor;
-  const targetMargin=Number(cogs.targetMargin);
+  const targetMargin=Number.isFinite(Number(cogs.targetMargin)) ? Number(cogs.targetMargin) : defaultTargetMargin;
   const suggestedPantryPrice=Number.isFinite(targetMargin) && targetMargin>0 && targetMargin<1
     ? (pantryPackageCost!==null ? pantryPackageCost : pantryTotal)/(1-targetMargin)
     : null;
@@ -2762,7 +2903,7 @@ function saveNotebookCogsCalculator(activeTab='cogs'){
     labelCost:numberOrNull(document.getElementById('notebookLabelCost')?.value),
     laborCost:null,
     wasteBuffer:numberOrNull(document.getElementById('notebookWasteBuffer')?.value),
-    targetMargin:numberOrNull(document.getElementById('notebookTargetMargin')?.value)
+    targetMargin:numberOrNull(document.getElementById('notebookTargetMargin')?.value) ?? defaultTargetMargin
   };
   product.laborMinutes=numberOrNull(document.getElementById('notebookLaborMinutes')?.value);
   product.hourlyLaborRate=numberOrNull(document.getElementById('notebookHourlyLaborRate')?.value);
@@ -2836,7 +2977,7 @@ function saveNotebookProduct(activeTab='overview'){
   if(document.getElementById('notebookPackagingCost')) updated.pantryCogs.packagingCost=numberOrNull(readValue('notebookPackagingCost'));
   if(document.getElementById('notebookLabelCost')) updated.pantryCogs.labelCost=numberOrNull(readValue('notebookLabelCost'));
   if(document.getElementById('notebookWasteBuffer')) updated.pantryCogs.wasteBuffer=numberOrNull(readValue('notebookWasteBuffer'));
-  if(document.getElementById('notebookTargetMargin')) updated.pantryCogs.targetMargin=numberOrNull(readValue('notebookTargetMargin'));
+  if(document.getElementById('notebookTargetMargin')) updated.pantryCogs.targetMargin=numberOrNull(readValue('notebookTargetMargin')) ?? defaultTargetMargin;
   if(document.getElementById('notebookCogsNotes')) updated.cogsNotes=readValue('notebookCogsNotes').trim();
   if(document.getElementById('notebookRefillPrice')) updated.pricePerUnit=numberOrNull(readValue('notebookRefillPrice')) ?? 0;
   if(document.getElementById('notebookPantryPrice')) updated.pantryPrice=numberOrNull(readValue('notebookPantryPrice')) ?? 0;
@@ -2899,7 +3040,7 @@ function saveNewProduct(){
     labelCost:numberOrNull(document.getElementById('newProductLabelCost')?.value),
     laborCost:numberOrNull(document.getElementById('newProductLaborCost')?.value),
     wasteBuffer:numberOrNull(document.getElementById('newProductWasteBuffer')?.value),
-    targetMargin:numberOrNull(document.getElementById('newProductTargetMargin')?.value)
+    targetMargin:numberOrNull(document.getElementById('newProductTargetMargin')?.value) ?? defaultTargetMargin
   };
   const hasCogs=Object.values(pantryCogs).some(value=>value!==null);
   const product={
@@ -3507,9 +3648,9 @@ function showAdmin(tab='dashboard'){
           <div><label>Label cost ${help('Cost for one finished label. Leave blank if you do not know it yet.')}</label><input id="newProductLabelCost" type="number" min="0" step=".01" placeholder="0.00"></div>
           <div><label>Labor cost ${help('Temporary labor estimate for this product. The Product Notebook can calculate labor more clearly from minutes and hourly rate later.')}</label><input id="newProductLaborCost" type="number" min="0" step=".01" placeholder="0.00"></div>
           <div><label>Waste buffer ${help('Extra cost added to cover spill, shrink, leftover product, testing loss, or normal production waste.')}</label><input id="newProductWasteBuffer" type="number" min="0" step=".01" placeholder="0.00"></div>
-          <div><label>Target margin ${help('Desired margin as a decimal. Example: 0.55 means 55 percent margin.')}</label><input id="newProductTargetMargin" type="number" min="0" step=".01" placeholder="Example: 0.55"></div>
+          <div><label>Target margin ${help('Desired margin as a decimal. Default is 0.6, meaning 60 percent margin. Raise or lower it when a product needs different math.')}</label><input id="newProductTargetMargin" type="number" min="0" step=".01" value="${defaultTargetMargin}" placeholder="0.6"></div>
         </div>
-        <div><label>Locations</label><textarea id="newProductLocations" placeholder="Common Good, markets, trunk box, future locations..."></textarea></div>
+        ${renderLocationPicker('newProduct','', 'Locations')}
         <div><label>Social media aspects</label><textarea id="newProductMarketing" placeholder="Buying lenses, sensory details, story, best use cases, customer pain points"></textarea></div>
         <div><label>Owner notes</label><textarea id="newProductNotes" placeholder="Anything else to remember before launch"></textarea></div>
         <button class="primary full" onclick="saveNewProduct()">Save product</button>
@@ -3523,11 +3664,13 @@ function showAdmin(tab='dashboard'){
       <div id="notebook"></div></section>`;
   }
   if(tab==='inventory'){
+    seedStarterExtrasIfNeeded();
     const items=getInventoryItems();
     const categoryOptions=inventoryCategories.map(category=>`<option>${category}</option>`).join('');
     body=`<section class="card"><h2>Inventory</h2>
       <div class="notice">Track raw ingredients, packaging, finished goods, refill stock, trunk boxes, market stock, accessories, and sourced jars without turning each one into a whole product setup.</div>
       <div class="notice">Raw ingredient inventory is for stock counts and reorder planning only. Product COGS is calculated from the recipe line items inside Product Notebook > Cost & Pricing.</div>
+      <div class="button-row"><button class="secondary" type="button" onclick="restoreStarterExtras()">Restore starter jars and extras</button></div>
       <div class="spacer"></div>
       <details class="summary" open>
         <summary>Quick process sourced jar</summary>
@@ -3665,6 +3808,7 @@ function showAdmin(tab='dashboard'){
   }
   if(tab==='settings'){
     const settings=getOwnerSettings();
+    const ownerLocations=getOwnerLocations();
     const defaultOwnerReminders=[
       'Better UI ideas:',
       '',
@@ -3683,6 +3827,32 @@ function showAdmin(tab='dashboard'){
       </div>
       <button class="primary" type="button" onclick="saveOwnerSettingsFromForm()">Save settings</button>
       <p id="settingsMessage" class="small"></p></section>
+      <section class="card">
+        <h2>Locations</h2>
+        <div class="notice">Manage the locations that appear in product setup. Current focus is Pantry Ready delivery and markets; the first farmstand is no longer the launch path.</div>
+        <div class="table-wrap"><table>
+          <tr><th>Use</th><th>Location</th><th>Type</th><th>Sales tax</th><th>Details</th><th></th></tr>
+          ${ownerLocations.map((location,index)=>`<tr>
+            <td><label class="check-row"><input id="ownerLocationActive${index}" type="checkbox" ${location.active!==false?'checked':''}><span>Active</span></label></td>
+            <td><input id="ownerLocationName${index}" value="${escapeHTML(location.name || '')}"></td>
+            <td><input id="ownerLocationType${index}" value="${escapeHTML(location.type || '')}" placeholder="Delivery, market, pickup..."></td>
+            <td><input id="ownerLocationTax${index}" value="${escapeHTML(location.taxRate || '')}" placeholder="8%"></td>
+            <td><input id="ownerLocationDetails${index}" value="${escapeHTML(location.details || '')}" placeholder="Products, fee notes, reporting notes..."></td>
+            <td><button class="icon-button danger-icon" type="button" onclick="deleteOwnerLocation(${index})">Del</button></td>
+          </tr>`).join('')}
+        </table></div>
+        <div class="button-row"><button class="primary" type="button" onclick="saveOwnerLocationsFromForm()">Save locations</button></div>
+        <details>
+          <summary>Add new location</summary>
+          <div class="grid grid-2">
+            <div><label>Location name</label><input id="newOwnerLocationName" placeholder="Example: Winter Market"></div>
+            <div><label>Location type</label><input id="newOwnerLocationType" placeholder="Delivery, market, pickup..."></div>
+            <div><label>Sales tax rate</label><input id="newOwnerLocationTax" placeholder="8%"></div>
+            <div><label>Pertinent details</label><input id="newOwnerLocationDetails" placeholder="Products offered, delivery fee notes, reporting notes..."></div>
+          </div>
+          <button class="secondary" type="button" onclick="addOwnerLocationFromForm()">Add location</button>
+        </details>
+      </section>
       <section class="card">
         <h2>Owner Reminders</h2>
         <div class="notice">Use this as a running scratchpad for better UI ideas, future build notes, and things you want to remember before the next update.</div>
@@ -3759,7 +3929,7 @@ function renderNotebook(activeTab='overview'){
         <div class="summary"><strong>Current status</strong><br>${statusBadge}<p>${sourceBadge(productPricingSource(p))} ${sourceBadge(productCogsSource(p))}</p></div>
       </div>
       <div class="summary"><strong>Inventory at a glance</strong><p>${productInventoryHTML(p)}</p><p class="small">Inventory can be linked from the Inventory tab by choosing this product.</p></div>
-      <div><label>Locations offered</label><textarea id="notebookLocations" placeholder="Common Good, markets, trunk box, future locations...">${escapeHTML(p.locations || '')}</textarea></div>
+      ${renderLocationPicker('notebook',p.locations)}
       <div><label>Owner notes</label><textarea id="notebookOwnerNotes" placeholder="Anything else to remember before launch">${escapeHTML(p.ownerNotes || '')}</textarea></div>
       <button class="primary" type="button" onclick="saveNotebookProduct('overview')">Save overview</button>
     </div>`,
@@ -3786,7 +3956,7 @@ function renderNotebook(activeTab='overview'){
           <div><label>Packaging cost per package ${help('Cost of one jar, pouch, bottle, lid, or other package for one finished Pantry Ready item.')}</label><input id="notebookPackagingCost" type="number" min="0" step=".01" value="${cogs.packagingCost ?? ''}" placeholder="0.00"></div>
           <div><label>Label cost per package ${help('Cost of one label for one finished Pantry Ready item.')}</label><input id="notebookLabelCost" type="number" min="0" step=".01" value="${cogs.labelCost ?? ''}" placeholder="0.00"></div>
           <div><label>Waste buffer for batch ${help('Extra batch cost for spill, shrink, testing, leftovers, or normal production loss.')}</label><input id="notebookWasteBuffer" type="number" min="0" step=".01" value="${cogs.wasteBuffer ?? ''}" placeholder="0.00"></div>
-          <div><label>Target margin ${help('Desired margin as a decimal. Example: 0.55 means 55 percent margin.')}</label><input id="notebookTargetMargin" type="number" min="0" step=".01" value="${cogs.targetMargin ?? ''}" placeholder="Example: 0.55"></div>
+          <div><label>Target margin ${help('Desired margin as a decimal. Default is 0.6, meaning 60 percent margin. Raise or lower it when a product needs different math.')}</label><input id="notebookTargetMargin" type="number" min="0" step=".01" value="${cogs.targetMargin ?? defaultTargetMargin}" placeholder="0.6"></div>
         </div>
         <div class="grid grid-2">
           <div><label>Packaging photo link</label><input id="notebookPackagingPhoto" value="${escapeHTML(p.packagingPhoto || '')}" placeholder="Optional image URL or file note"></div>
